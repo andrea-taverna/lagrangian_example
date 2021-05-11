@@ -1,0 +1,92 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage{graphicx}
+\usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+\usepackage{ifthen}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{prettyref}
+\usepackage{hyperref}
+\usepackage{amsthm}
+\usepackage{trace}
+\usepackage{tikz}
+
+\newcommand{\DefEnumStuff}[3]{%
+  \newcounter{count#2}%
+  \setcounter{count#2}{0}%
+  \newenvironment{#1}%
+  {\let\olditem\item%
+    \begin{enumerate}[label={#3\arabic*}., ref=\arabic*]%
+      \setcounter{enumi}{\value{count#2}}%
+      \renewcommand{\item}[1][]{%
+        \refstepcounter{count#2} \olditem%
+        \ifthenelse{ \equal{####1}{} }{}{\label{####1}}%
+      }%
+    }%
+    {\end{enumerate}}%
+  \expandafter\newcommand\csname refstep#2\endcsname[1] {{\refstepcounter{count#2}\label{##1}}}%
+  \newrefformat{#2}{\hyperref[{##1}]{#3{\expandafter\ref*{##1}}}}%
+  }%
+
+  
+  \newcommand{\tagref}[1]{{\tag{\prettyref{#1}}}}
+
+  \newcommand{\EIE}{\text{EIE}} 
+  \newcommand{\ENP}{\text{ENP}}
+  \begin{document}
+
+  \section*{Original problem}
+
+  \begin{align}
+  \min & \sum_{i\in I, t\in T} \left ( l_{it} p_{it} + c_{it} s_{it} \right ) + \sum_{t\in T} c_{EIE} EIE_t + \sum_{t\in T} c_{ENP} ENP_t \\
+  \text{s.t.~} & p_{it} \le \bar{p}_i s_{it} & \forall i\in I, t\in T \label{cons:orig-first}\\ 
+       & p_{it} \ge \underline{p}_i s_{it} & \forall i\in I, t\in T\\
+       & p_{it} \le p_{i(t-1)} + \delta^+_{i} s_{i(t-1)}  + \underline{p}_i (1 - s_{i(t-1)}) & \forall i\in I, t \in T\\
+       & p_{i(t-1)} \ge p_{it} + \delta^-_{i} s_{it}  + \bar{p}_i (1 - s_{it}) & \forall i\in I, t \in T\\
+       & u^+_{it} \ge s_{it} - s_{i(t-1)} & \forall i\in I, t\in T : t > 0\\
+       & u^-_{it} \ge s_{i(t-1)} - s_{it} & \forall i\in I, t\in T : t > 0\\
+       & u^+_{it} \le s_{it} & \forall i\in I, t\in T\\
+       & u^-_{it} \le 1 - s_{it} & \forall i\in I, t\in T\\
+       & s_{it} \ge \sum_{t'\in \max(0, t-\tau^+_i) \ldots t} u^+_{it'} & \forall i\in I, t\in T\\
+       & s_{it} \le 1 - \sum_{t'\in \max(0, t-\tau^-_i) \ldots t} u^-_{it'} & \forall i\in I, t\in T \label{cons:orig-min-down}\\
+       & \sum_{i\in I} p_{it} + ENP_{t} = D_t + EIE_t & \forall t\in T \quad \\
+       & s_{it}, u^-_{it}, u^+_{it} \in \{0, 1\}  & \forall i\in I, t\in T \label{cons:orig-bin-vars}
+\end{align}
+
+
+\subsection*{Dualize Demand constraint}
+Due to constraint relaxation slack variables $EIE$ and $ENP$ are zero for every optimal solution and are thus omitted.
+
+
+Objective function:
+\begin{align*}
+  \min &\sum_{i\in I, t\in T} \left ( l_{it} p_{it} + c_{it} s_{it} \right ) + \sum_{t\in T} \lambda_t (\sum_{i\in I} D_t - p_{it}) \\
+   &=\\
+   \min &\sum_{i\in I, t\in T} \left ( (l_{it} -\lambda_t) p_{it} + c_{it} s_{it} \right ) + \lambda_t D_t
+\end{align*}
+
+  \begin{align}
+     \min &\sum_{i\in I, t\in T} \left ( (l_{it} -\lambda_t) p_{it} + c_{it} s_{it} \right ) + \lambda_t D_t
+  \text{s.t.~} & \eqref{cons:orig-first}-\eqref{cons:orig-min-down}, \eqref{cons:orig-bin-vars} 
+\end{align}
+
+\subsection*{Dualize Production/State constraint}
+
+Objective function:
+\begin{align*}
+  \min &\sum_{i\in I, t\in T} \left ( l_{it} p_{it} + c_{it} s_{it} \right ) + \sum_{t\in T} c_{EIE} EIE_t + \sum_{t\in T} c_{ENP} ENP_t  \\
+       & + \sum_{i\in I, t\in T} \lambda^+_{it} (p_{it} - \bar{p}_i s_{it}) + \sum_{i\in I, t\in T} \lambda^-_{it} (\underline{p}_{i} s_{it} - p_{it})   \\
+       & + \sum_{i\in I, t\in T} \mu^+_{it} (p_{it} - p_{i(t-1)} - \delta^+_i s_{i(t-1)}  - \underline{p}_i (1 - s_{i(t-1)})) + \\
+  &\sum_{i\in I, t\in T} \mu^-_{it} (p_{it} + \delta^-_{i} s_{it}  + \bar{p}_i (1 - s_{it}) - p_{i(t-1)}) \forall i\in I, t \in T\\
+       &=\\
+       & \sum_{i\in I, t\in T} (l_{it} + \lambda^+_{it} - \lambda^-_{it} + \mu^+_{it} + \mu^-_{it} - \mu^+_{i(t+1)} -\mu^-_{i(t+1)} )  p_{it}\\
+       & + (c_{it} - \lambda^+_{it} + \lambda^-_{it} - \mu^+_{it} + \mu^-_{it})  s_{it}  \\ & + \sum_{t\in T} c_{EIE} EIE_t + \sum_{t\in T} c_{ENP} ENP_t  \\
+\end{align*}
+
+  \begin{align}
+  \min &    \min &\sum_{i\in I, t\in T} \left ( (l_{it} -\lambda_t) p_{it} + c_{it} s_{it} \right ) + \lambda_t D_t
+  \text{s.t.~} & \eqref{cons:orig-first}-\eqref{cons:orig-min-down}, \eqref{cons:orig-bin-vars} 
+\end{align}
+
+\end{document}
