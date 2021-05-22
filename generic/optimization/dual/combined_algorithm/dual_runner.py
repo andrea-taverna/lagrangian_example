@@ -25,7 +25,6 @@ class DualAlgorithmRunner:
 
     sgd_counter: int
     cp_counter: int
-    cp_first_iteration: bool
 
     def __init__(
         self,
@@ -40,7 +39,6 @@ class DualAlgorithmRunner:
         self.sgd_flag = True
         self.sgd_counter = 0
         self.cp_counter = 0
-        self.cp_first_iteration = True
         self.vect_multipliers = series_dict_to_array(**initial_multipliers)
         self.master_bound = infty * cp_configuration["sense"]
         self.multipliers_dict_template = series_dict_indexes(**initial_multipliers)
@@ -57,29 +55,28 @@ class DualAlgorithmRunner:
     def new_multipliers(self, dual_solution: DualInformation) -> Tuple[float, OrderedDict[str, Series], str]:
         vect_subgradient = series_dict_to_array(**dual_solution.bundle.subgradient)
 
-        self.vect_multipliers = self._compute_new_multipliers(
+        self.vect_multipliers, algorithm = self._compute_new_multipliers(
             dual_solution.objective, dual_solution.bundle.intercept, vect_subgradient
         )
         new_multipliers = full_series_dict(0.0, **self.multipliers_dict_template)
         array_into_series_dict(self.vect_multipliers, **new_multipliers)
 
-        algorithm = self.configuration.sgd_name if self.sgd_flag else self.configuration.cp_name
-
         return self.master_bound, new_multipliers, algorithm
 
-    def _compute_new_multipliers(self, value: float, intercept: float, vect_subgradient: ndarray) -> ndarray:
+    def _compute_new_multipliers(self, value: float, intercept: float, vect_subgradient: ndarray) -> Tuple[ndarray, str]:
         self._choose_dual_algorithm()
         if self.sgd_flag:
             new_vect_multipliers = self.sgd_alg(value, vect_subgradient)
             self.sgd_counter += 1
+            algorithm = self.configuration.sgd_name
         else:
             self.master_bound, new_vect_multipliers = self.cp_alg(value, intercept, vect_subgradient, **self.configuration.cp_solver_options)
             self.cp_counter += 1
+            algorithm = self.configuration.cp_name
 
-        return new_vect_multipliers
+        return new_vect_multipliers, algorithm
 
     def _choose_dual_algorithm(self):
-        print(f">>>{self.sgd_counter}")
         if self.sgd_counter >= self.configuration.sgd_iterations:
             # choose cutting plane
             self.sgd_counter = 0

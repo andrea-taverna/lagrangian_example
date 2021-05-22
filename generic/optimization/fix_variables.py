@@ -1,4 +1,4 @@
-from typing import Iterable, Dict, Tuple, Any
+from typing import Dict, Tuple, Any
 
 from pulp import LpVariable
 
@@ -8,6 +8,13 @@ from generic.optimization.model import MathematicalProgram, Solution
 def fix_variables(
     variables: Dict[str, Dict[Any,LpVariable]], model: MathematicalProgram, solution: Solution
 ) -> Dict[str, Dict[Any, Tuple[float, float]]]:
+    """
+    Fixes variables in `variables` to the values found in `solution` for model `model`.
+    :param variables: dict of variables in `model` to fix
+    :param model: LP model
+    :param solution: values for the variables in `variables`
+    :return: previous bounds of the variables. See `unfix_variables`
+    """
     previous_bounds = {name:{k:(v.lowBound, v.upBound) for k, v in vars.items()} for name, vars in variables.items()}
 
     for name, vars in variables.items():
@@ -18,6 +25,11 @@ def fix_variables(
 
 
 def unfix_variables(model: MathematicalProgram, previous_bounds: Dict[str, Dict[Any, Tuple[float, float]]]):
+    """
+    Given a model with fixed variables it sets their bounds to the values set in `previous_bounds`.
+    :param model: model with fixed variables
+    :param previous_bounds: dict of variable names and bounds as tuples (lower, upper)
+    """
     for name, bounds in previous_bounds.items():
         var = model.vars[name]
         for key, (low, up) in bounds.items():

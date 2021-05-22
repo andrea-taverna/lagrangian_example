@@ -17,8 +17,10 @@ def make_economic_dispatch(data: UCPData) -> MathematicalProgram:
 
     ### VARIABLES
     p = {
-        (id, t): LpVariable(f"p_{id}_{t}", lowBound=0,upBound=max_power)
-        for ((id, max_power), t) in product(TPP[["plant", "max_power"]].itertuples(index=False), Time)
+        (id, t): LpVariable(f"p_{id}_{t}", lowBound=0, upBound=max_power)
+        for ((id, max_power), t) in product(
+            TPP[["plant", "max_power"]].itertuples(index=False), Time
+        )
     }
 
     EIE = LpVariable.dict("EIE", Time, lowBound=0)
@@ -27,8 +29,10 @@ def make_economic_dispatch(data: UCPData) -> MathematicalProgram:
 
     ### CONSTRAINTS
     demand_satisfaction = {
-        t: add_constraint(model,
-            lpSum(p[id, t] for id in TPP["plant"].values) + ENP[t] - EIE[t] == data.loads["value"][t],
+        t: add_constraint(
+            model,
+            lpSum(p[id, t] for id in TPP["plant"].values) + ENP[t] - EIE[t]
+            == data.loads["value"][t],
             f"demand_satisfaction_{t}",
         )
         for t in Time
@@ -36,10 +40,15 @@ def make_economic_dispatch(data: UCPData) -> MathematicalProgram:
 
     ### OBJECTIVE
     thermal_production_cost = lpSum(
-        l_cost * p[id, t] for ((id, l_cost), t) in product(TPP[["plant", "l_cost"]].itertuples(index=False), Time)
+        l_cost * p[id, t]
+        for ((id, l_cost), t) in product(
+            TPP[["plant", "l_cost"]].itertuples(index=False), Time
+        )
     )
 
-    dispatch_cost = thermal_production_cost + lpSum(data.c_EIE * EIE[t] + data.c_ENP * ENP[t] for t in Time)
+    dispatch_cost = thermal_production_cost + lpSum(
+        data.c_EIE * EIE[t] + data.c_ENP * ENP[t] for t in Time
+    )
 
     ### MODEL MUNCH
     return MathematicalProgram(
@@ -53,7 +62,9 @@ def make_economic_dispatch(data: UCPData) -> MathematicalProgram:
 
 
 def make_single_UCP(data, plant) -> MathematicalProgram:
-    TPP = data.thermal_plants.set_index("plant")[data.thermal_plants["plant"] == plant].to_dict("index")[plant]
+    TPP = data.thermal_plants.set_index("plant")[
+        data.thermal_plants["plant"] == plant
+    ].to_dict("index")[plant]
     Time = data.loads["period"].values
     model = LpProblem("UCP", sense=LpMinimize)
 
@@ -65,25 +76,43 @@ def make_single_UCP(data, plant) -> MathematicalProgram:
     dn = LpVariable.dict(f"dn_{plant}", Time, cat=LpBinary)
 
     ### CONSTRAINTS
-    def_up = {t: add_constraint(model, up[t] >= s[t] - s[t - 1], f"def_up_{plant}_{t}") for t in Time if t > 0}
+    def_up = {
+        t: add_constraint(model, up[t] >= s[t] - s[t - 1], f"def_up_{plant}_{t}")
+        for t in Time
+        if t > 0
+    }
 
-    def_down = {t: add_constraint(model, dn[t] >= s[t - 1] - s[t], f"def_dn_{plant}_{t}") for t in Time if t > 0}
+    def_down = {
+        t: add_constraint(model, dn[t] >= s[t - 1] - s[t], f"def_dn_{plant}_{t}")
+        for t in Time
+        if t > 0
+    }
 
-    def_up_zero = {t: add_constraint(model, up[t] <= s[t], f"def_up_zero_{plant}_{t}") for t in Time}
+    def_up_zero = {
+        t: add_constraint(model, up[t] <= s[t], f"def_up_zero_{plant}_{t}")
+        for t in Time
+    }
 
-    def_down_zero = {t: add_constraint(model, dn[t] <= 1 - s[t], f"def_dn_zero_{plant}_{t}") for t in Time}
+    def_down_zero = {
+        t: add_constraint(model, dn[t] <= 1 - s[t], f"def_dn_zero_{plant}_{t}")
+        for t in Time
+    }
 
     def_min_on = {
-        t: add_constraint(model,
-            s[t] >= lpSum(up[t1] for t1 in range(max(0, t - TPP["min_on"]), t)), f"def_min_on_{plant}_{t}"
+        t: add_constraint(
+            model,
+            s[t] >= lpSum(up[t1] for t1 in range(max(0, t - TPP["min_on"]), t)),
+            f"def_min_on_{plant}_{t}",
         )
         for t in Time
         if t > 0
     }
 
     def_min_off = {
-        t: add_constraint(model,
-            s[t] <= 1 - lpSum(dn[t1] for t1 in range(max(0, t - TPP["min_off"]), t)), f"def_min_off_{plant}_{t}"
+        t: add_constraint(
+            model,
+            s[t] <= 1 - lpSum(dn[t1] for t1 in range(max(0, t - TPP["min_off"]), t)),
+            f"def_min_off_{plant}_{t}",
         )
         for t in Time
         if t > 0

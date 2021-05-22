@@ -3,11 +3,13 @@ from typing import Dict, Any, OrderedDict, Tuple
 
 import numpy as np
 import pandas as pd
-from pulp import PULP_CBC_CMD, lpSum, LpStatus, LpStatusOptimal
+from pulp import PULP_CBC_CMD, lpSum, LpStatusOptimal
 
-from UCP.model.ucp import UCPData, create_model
-from UCP.relaxations.lagrangian.production_state.subproblems import make_single_UCP, make_economic_dispatch
-from generic.optimization.dual.dualized_constraints import DualizedConstraint, ConstraintSense
+from UCP.model.ucp import UCPData
+from UCP.relaxations.lagrangian.production_state.subproblems import (
+    make_single_UCP,
+    make_economic_dispatch,
+)
 from generic.optimization.dual.lagrangian_decomposition import (
     LagrangianDecomposition,
     PrimalInformation,
@@ -16,42 +18,82 @@ from generic.optimization.dual.lagrangian_decomposition import (
 )
 from generic.optimization.model import MathematicalProgram, Solution, OptimizationSense
 from generic.optimization.solution_aggregation import extract_and_aggregate_solutions
-from generic.optimization.solution_extraction import extract_solution, compute_multipliers
+from generic.optimization.solution_extraction import extract_solution
 
 
 class ProductionStateRelaxation(LagrangianDecomposition):
     single_ucps: Dict[Any, MathematicalProgram]
     econ_dispatch: MathematicalProgram
     data: UCPData
-    dualized_constraints: OrderedDict[str, DualizedConstraint]
+    penalty_increase_factor: float
 
     def __init__(self, data: UCPData, penalty_increase_factor: float = 1.5):
-        dualized_cons = _make_dualized_constraints(data, penalty_increase_factor=penalty_increase_factor)
-        super().__init__(sense=OptimizationSense.MIN, dualized_constraints=dualized_cons)
+        super().__init__(sense=OptimizationSense.MIN)
 
         self.data = data
-        self.single_ucps = {plant: make_single_UCP(data, plant) for plant in data.thermal_plants["plant"]}
+        self.single_ucps = {
+            plant: make_single_UCP(data, plant)
+            for plant in data.thermal_plants["plant"]
+        }
         self.econ_dispatch = make_economic_dispatch(data)
+        self.penalty_increase_factor = penalty_increase_factor
 
-    def lhs(self, solution: Solution) -> OrderedDict[str, pd.Series]:
+    def fill_multipliers(self, value: float = 0.0) -> OrderedDict[str, pd.Series]:
+        index = _multipliers_index(self.data)
+        return collections.OrderedDict(
+            [
+                ("min_production", pd.Series(np.full(len(index), value), index=index)),
+                ("max_production", pd.Series(np.full(len(index), value), index=index)),
+            ]
+        )
+
+    def multipliers_range(
+        self,
+    ) -> Tuple[OrderedDict[str, pd.Series], OrderedDict[str, pd.Series]]:
+        index = _multipliers_index(self.data)
+
+        max_obj_cost = max(self.data.c_EIE, self.data.c_ENP)
+
+        multipliers_lb = pd.Series(np.zeros(len(index)), index=index)
+        multipliers_ub = pd.Series(
+            np.full(len(index), max_obj_cost * self.penalty_increase_factor),
+            index=index,
+        )
+
+        return (
+            collections.OrderedDict(
+                [("min_production", multipliers_lb), ("max_production", multipliers_lb)]
+            ),
+            collections.OrderedDict(
+                [("min_production", multipliers_ub), ("max_production", multipliers_ub)]
+            ),
+        )
+
+    def violations(self, solution: Solution) -> OrderedDict[str, pd.Series]:
         production = solution["p"]
         state = solution["s"]
         tpp = self.data.thermal_plants.set_index(["plant"])
 
-        production_low = production - state * tpp["min_power"]
-        production_up = production - state * tpp["max_power"]
+        return collections.OrderedDict(
+            [
+                ("min_production", state * tpp["min_power"] - production),
+                ("max_production", production - state * tpp["max_power"]),
+            ]
+        )
 
-        return collections.OrderedDict({"min_production": production_low, "max_production": production_up})
+    def infeasibilities(self, solution) -> OrderedDict[str, pd.Series]:
+        violations = self.violations(solution)
+        infeasibilities = collections.OrderedDict(
+            [(k, v.transform(lambda x: max(0.0, x))) for k, v in violations.items()]
+        )
+        return infeasibilities
 
-    def rhs(self) -> OrderedDict[str, pd.Series]:
-        index = self.dualized_constraints["min_production"].index
-        rhs_value = pd.Series(np.zeros(len(index)), index=index)
-        return collections.OrderedDict(min_production=rhs_value, max_production=rhs_value.copy())
-
-    def evaluate(self, multipliers: OrderedDict[str, pd.Series], **kwargs) -> Tuple[PrimalInformation, DualInformation]:
+    def evaluate(
+        self, multipliers: OrderedDict[str, pd.Series], **kwargs
+    ) -> Tuple[PrimalInformation, DualInformation]:
         self._set_multipliers(multipliers)
 
-        for plant, problem in self.single_ucps.items():
+        for problem in self.single_ucps.values():
             status = problem.model.solve(PULP_CBC_CMD(**kwargs))
             assert status == LpStatusOptimal
 
@@ -67,10 +109,14 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         subgradient = self.subgradient(solution)
 
         primal_information = PrimalInformation(
-            solution=solution, objective=original_objective, infeasibilities=infeasibilities
+            solution=solution,
+            objective=original_objective,
+            infeasibilities=infeasibilities,
         )
         dual_information = DualInformation(
-            solution=multipliers, objective=value, bundle=SeriesBundle(intercept=intercept, subgradient=subgradient)
+            solution=multipliers,
+            objective=value,
+            bundle=SeriesBundle(intercept=intercept, subgradient=subgradient),
         )
         return primal_information, dual_information
 
@@ -88,7 +134,8 @@ class ProductionStateRelaxation(LagrangianDecomposition):
             s = problem.vars["s"]
             commitment_cost = problem.exprs["commitment_cost"]
             problem.model.setObjective(
-                commitment_cost + lpSum(dual_coef[plant, t] * s[t] for t in self.data.loads["period"])
+                commitment_cost
+                + lpSum(dual_coef[plant, t] * s[t] for t in self.data.loads["period"])
             )
 
         p = self.econ_dispatch.vars["p"]
@@ -102,14 +149,18 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         )
 
     def _extract_solution_kpis(self) -> Tuple[Solution, float]:
-        ucp_solution = extract_and_aggregate_solutions(self.single_ucps, id_name=["plant"])
+        ucp_solution = extract_and_aggregate_solutions(
+            self.single_ucps, id_name=["plant"]
+        )
 
         edp_solution = extract_solution(self.econ_dispatch)
 
         assert len(set(ucp_solution.keys()).intersection(edp_solution.keys())) == 0
         solution = {**ucp_solution, **edp_solution}
 
-        single_ucps_obj = sum(problem.model.objective.value() for problem in self.single_ucps.values())
+        single_ucps_obj = sum(
+            problem.model.objective.value() for problem in self.single_ucps.values()
+        )
         objective = single_ucps_obj + self.econ_dispatch.model.objective.value()
 
         return solution, objective
@@ -120,41 +171,23 @@ class ProductionStateRelaxation(LagrangianDecomposition):
     def linearization_intercept(self, solution: Solution) -> float:
         return self._original_objective(solution)
 
-    def information_from_primal_solution(self, solution:Solution, **kwargs) -> Tuple[PrimalInformation, SeriesBundle]:
+    def information_from_primal_solution(
+        self, solution: Solution, **kwargs
+    ) -> Tuple[PrimalInformation, SeriesBundle]:
         primal_info = PrimalInformation(
             solution=solution,
             objective=solution["total_production_cost"],
             infeasibilities=self.infeasibilities(solution),
         )
-        bundle = SeriesBundle(intercept=solution["total_production_cost"], subgradient=self.subgradient(solution))
+        bundle = SeriesBundle(
+            intercept=solution["total_production_cost"],
+            subgradient=self.subgradient(solution),
+        )
         return primal_info, bundle
 
-    def multipliers_from_primal_solution(self, solution, **kwargs) -> OrderedDict[str, pd.Series]:
-        model = create_model(self.data)
-        multipliers = compute_multipliers(model, solution)
-        return collections.OrderedDict([(k, multipliers[k]) for k in self.dualized_constraints.keys()])
 
-
-def _make_dualized_constraints(data: UCPData, penalty_increase_factor: float) -> OrderedDict[str, DualizedConstraint]:
+def _multipliers_index(data: UCPData) -> pd.Index:
     periods = data.loads["period"].to_list()
     plants = data.thermal_plants["plant"].to_list()
 
-    index = pd.MultiIndex.from_product([plants, periods], names=["period", "plant"])
-
-    max_obj_cost = max(data.c_EIE, data.c_ENP)
-
-    multipliers_lb = pd.Series(np.zeros(len(index)), index=index)
-    multipliers_ub = pd.Series(np.full(len(index), max_obj_cost * penalty_increase_factor), index=index)
-
-    return collections.OrderedDict(
-        [
-            (
-                "min_production",
-                DualizedConstraint("min_production", ConstraintSense.GREATER_THAN, multipliers_lb, multipliers_ub),
-            ),
-            (
-                "max_production",
-                DualizedConstraint("max_production", ConstraintSense.LESS_THAN, multipliers_lb, multipliers_ub),
-            ),
-        ]
-    )
+    return pd.MultiIndex.from_product([plants, periods], names=["period", "plant"])
