@@ -22,12 +22,30 @@ from generic.optimization.solution_extraction import extract_solution
 
 
 class ProductionStateRelaxation(LagrangianDecomposition):
+    """"
+    Implements a production/state lagrangian relaxation for the UCP
+    """
+
     single_ucps: Dict[Any, MathematicalProgram]
+    """ UCP subproblem for each single power plant"""
+
     econ_dispatch: MathematicalProgram
+    """ Economic dispatch problem. Computes optimal production levels for power plants."""
+
     data: UCPData
+    """ data for the UCP problem."""
+
     penalty_increase_factor: float
+    """ How much should the multipliers' (absolute) bounds are larger than the maximum between per-unit cost 
+        of ENP and EIE."""
 
     def __init__(self, data: UCPData, penalty_increase_factor: float = 1.5):
+        """
+
+        Args:
+            data: data for UCP problem
+            penalty_increase_factor: penalty increase factor for multipliers' range
+        """
         super().__init__(sense=OptimizationSense.MIN)
 
         self.data = data
@@ -39,6 +57,14 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         self.penalty_increase_factor = penalty_increase_factor
 
     def fill_multipliers(self, value: float = 0.0) -> OrderedDict[str, pd.Series]:
+        """
+        Creates multipliers data for the problem with the fixed value (default zero)
+        Args:
+            value: initial value for multipliers
+
+        Returns:
+            a series_dict for the multipliers with the provided value.
+        """
         index = _multipliers_index(self.data)
         return collections.OrderedDict(
             [
@@ -50,6 +76,11 @@ class ProductionStateRelaxation(LagrangianDecomposition):
     def multipliers_range(
         self,
     ) -> Tuple[OrderedDict[str, pd.Series], OrderedDict[str, pd.Series]]:
+        """
+        Returns the range for the multipliers.
+        Returns:
+            a tuple (lower,upper) of series_dict containing for each multiplier the lower and upper value resp.
+        """
         index = _multipliers_index(self.data)
 
         max_obj_cost = max(self.data.c_EIE, self.data.c_ENP)
@@ -70,6 +101,14 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         )
 
     def violations(self, solution: Solution) -> OrderedDict[str, pd.Series]:
+        """
+        Returns the violations for the provided solution.
+        Args:
+            solution: current solution to compute violations from
+
+        Returns:
+            a series_dict containing the violations for each dualized constraint
+        """
         production = solution["p"]
         state = solution["s"]
         tpp = self.data.thermal_plants.set_index(["plant"])
@@ -82,6 +121,14 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         )
 
     def infeasibilities(self, solution) -> OrderedDict[str, pd.Series]:
+        """
+        Returns the infeasibilities for the provided solution.
+        Args:
+            solution: solution to compute infeasibilities for
+
+        Returns:
+            a series_dict with infeasibilities for each dualized constraint
+        """
         violations = self.violations(solution)
         infeasibilities = collections.OrderedDict(
             [(k, v.transform(lambda x: max(0.0, x))) for k, v in violations.items()]
@@ -91,6 +138,15 @@ class ProductionStateRelaxation(LagrangianDecomposition):
     def evaluate(
         self, multipliers: OrderedDict[str, pd.Series], **kwargs
     ) -> Tuple[PrimalInformation, DualInformation]:
+        """
+        Returns the value of the Lagrangian Function (LF) for given multipliers
+        Args:
+            multipliers: multipliers to evaluate
+            **kwargs: solver options
+
+        Returns:
+            a tuple containing primal and dual information for the current LF evaluation
+        """
         self._set_multipliers(multipliers)
 
         for problem in self.single_ucps.values():
@@ -121,6 +177,11 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         return primal_information, dual_information
 
     def _set_multipliers(self, multipliers: Dict[str, pd.Series]):
+        """
+        Set multipliers in each subproblem's objective function.
+        Args:
+            multipliers: multipliers to set
+        """
         production_up = multipliers["max_production"]
         production_low = multipliers["min_production"]
         TPP = self.data.thermal_plants.set_index("plant")
@@ -149,6 +210,11 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         )
 
     def _extract_solution_kpis(self) -> Tuple[Solution, float]:
+        """
+        Extract the solution KPIs (value of variables + LF value
+        Returns:
+            a tuple (Solution, LF_value)
+        """
         ucp_solution = extract_and_aggregate_solutions(
             self.single_ucps, id_name=["plant"]
         )
@@ -161,19 +227,47 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         single_ucps_obj = sum(
             problem.model.objective.value() for problem in self.single_ucps.values()
         )
-        objective = single_ucps_obj + self.econ_dispatch.model.objective.value()
+        LF_value = single_ucps_obj + self.econ_dispatch.model.objective.value()
 
-        return solution, objective
+        return solution, LF_value
 
     def _original_objective(self, solution: Solution) -> float:
+        """
+        Returns the "original objective", i.e. the objective value of the original UCP problem, from the solution of
+        the lagrangian relaxation.
+        Args:
+            solution: solution to compute the original objective for
+
+        Returns:
+            value of the original objective
+        """
         return solution["commitment_cost"].sum() + solution["dispatch_cost"]
 
     def linearization_intercept(self, solution: Solution) -> float:
+        """
+        Returns the intercept of the linear approximation/cutting plane/bundle of the lagrangian function at the solution.
+        Usually equal to the `original_objective`. There may be corner cases where it is computed differently.
+
+        Args:
+            solution: solution to compute the linearization intercept
+
+        Returns:
+            linearization intercept.
+        """
         return self._original_objective(solution)
 
     def information_from_primal_solution(
         self, solution: Solution, **kwargs
     ) -> Tuple[PrimalInformation, SeriesBundle]:
+        """
+        Computes primal and dual information from a solution **to the original problem**
+
+        Args:
+            solution: solution to the original UCP formulation to compute information from
+
+        Returns:
+        Primal and Dual information as in `evaluate`.
+        """
         primal_info = PrimalInformation(
             solution=solution,
             objective=solution["total_production_cost"],

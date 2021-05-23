@@ -17,6 +17,14 @@ index_names = dict(
 
 
 def create_model(data: UCPData) -> MathematicalProgram:
+    """
+    Creates a UCP model.
+    Args:
+        data: UCP data
+
+    Returns:
+        a mathematical program for the UCP
+    """
     TPP = data.thermal_plants
     Plants = TPP["plant"].to_list()
     Time = data.loads["period"].values
