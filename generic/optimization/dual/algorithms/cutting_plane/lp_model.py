@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List, Tuple
-from pulp import LpProblem, LpVariable, LpMaximize, LpMinimize, LpSenses, LpConstraint, lpSum, PULP_CBC_CMD, \
+from pulp import LpProblem, LpVariable, LpMaximize, LpMinimize, LpSenses, LpConstraint, lpSum, COIN_CMD, \
     LpStatusOptimal
 
 from generic.optimization.model import OptimizationSense
@@ -36,7 +36,7 @@ class CPLPModel:
         self.model.addConstraint(cons_expr)
 
     def actual_solve(self, **kwargs) -> Tuple[int, float, np.ndarray]:
-        status = self.model.solve(PULP_CBC_CMD(**kwargs))
+        status = self.model.solve(COIN_CMD(**kwargs))
         var_values = np.array([self.variables[i].value() for i in range(len(self.variables))])
         return status, self.optimistic_bound.value(), var_values
 

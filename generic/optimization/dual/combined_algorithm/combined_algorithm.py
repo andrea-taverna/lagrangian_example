@@ -66,11 +66,10 @@ class CombinedAlgorithm:
         )
         self.heuristic_algorithm = heuristic_algorithm
 
-        self.bounds = (
-            bounds_tracker
-            if bounds_tracker is not None
-            else BoundsTracker(sense=relaxation.sense)
-        )
+        if bounds_tracker is not None:
+            self.bounds = bounds_tracker
+        else:
+            self.bounds = BoundsTracker(sense=relaxation.sense)
 
         self.primal_solutions = []
         self.dual_solutions = []
@@ -107,7 +106,7 @@ class CombinedAlgorithm:
             self.primal_solutions.append(self.relaxation_primal.solution)
             self.dual_solutions.append(self.current_multipliers)
 
-            # Update best dual bound and primal bound
+            ## Update best dual bound and primal bound
             self.bounds.update_dual_bound(self.relaxation_dual)
             self.bounds.update_primal_bound(self.relaxation_primal)
             self.bounds.update_master_bound(self.master_bound)
@@ -128,7 +127,7 @@ class CombinedAlgorithm:
             else:
                 self.heuristic_solution = None
 
-            # check convergence
+            ## Check convergence
             self.converged = self.check_convergence()
             self.stop = (
                 self.converged or self.iteration >= self.configuration.max_iterations
@@ -144,7 +143,6 @@ class CombinedAlgorithm:
         vect_subgradient = series_dict_to_array(
             **self.relaxation_dual.bundle.subgradient
         )
-        is_subgradient_small = np.linalg.norm(vect_subgradient) <= (
-            self.configuration.subgradient_tolerance
-        )
+        sgd_norm = np.linalg.norm(vect_subgradient)
+        is_subgradient_small =  sgd_norm <= self.configuration.subgradient_tolerance
         return are_gaps_below_threshold and is_subgradient_small

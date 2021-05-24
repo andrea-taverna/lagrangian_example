@@ -10,10 +10,14 @@ def fix_variables(
 ) -> Dict[str, Dict[Any, Tuple[float, float]]]:
     """
     Fixes variables in `variables` to the values found in `solution` for model `model`.
-    :param variables: dict of variables in `model` to fix
-    :param model: LP model
-    :param solution: values for the variables in `variables`
-    :return: previous bounds of the variables. See `unfix_variables`
+
+    Args:
+        variables: dict of variables in `model` to fix
+        model: LP model
+        solution: values for the variables in `variables`
+
+    Returns:
+        previous bounds of the variables. See `unfix_variables`
     """
     previous_bounds = {name:{k:(v.lowBound, v.upBound) for k, v in vars.items()} for name, vars in variables.items()}
 
@@ -27,8 +31,10 @@ def fix_variables(
 def unfix_variables(model: MathematicalProgram, previous_bounds: Dict[str, Dict[Any, Tuple[float, float]]]):
     """
     Given a model with fixed variables it sets their bounds to the values set in `previous_bounds`.
-    :param model: model with fixed variables
-    :param previous_bounds: dict of variable names and bounds as tuples (lower, upper)
+
+    Args:
+        model: model with fixed variables
+        previous_bounds:  dict {variable_name: {variable_index: (lower_bound, upper_bound)}}
     """
     for name, bounds in previous_bounds.items():
         var = model.vars[name]

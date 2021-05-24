@@ -3,7 +3,7 @@ from typing import Dict, Any, OrderedDict, Tuple
 
 import numpy as np
 import pandas as pd
-from pulp import PULP_CBC_CMD, lpSum, LpStatusOptimal
+from pulp import COIN_CMD, lpSum, LpStatusOptimal
 
 from UCP.model.ucp import UCPData
 from UCP.relaxations.lagrangian.production_state.subproblems import (
@@ -150,10 +150,10 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         self._set_multipliers(multipliers)
 
         for problem in self.single_ucps.values():
-            status = problem.model.solve(PULP_CBC_CMD(**kwargs))
+            status = problem.model.solve(COIN_CMD(**kwargs))
             assert status == LpStatusOptimal
 
-        status = self.econ_dispatch.solve(PULP_CBC_CMD(**kwargs))
+        status = self.econ_dispatch.solve(COIN_CMD(**kwargs))
         assert status == LpStatusOptimal
 
         solution, value = self._extract_solution_kpis()

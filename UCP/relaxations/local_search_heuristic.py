@@ -1,6 +1,6 @@
 import logging
 
-from pulp import PULP_CBC_CMD, LpStatusOptimal
+from pulp import COIN_CMD, LpStatusOptimal
 
 from UCP.input.data import UCPData
 from UCP.model.ucp import create_model
@@ -64,7 +64,7 @@ def local_search(
                 v.lowBound, v.upBound = 0, 1
 
     # solve the model
-    status = model.solve(PULP_CBC_CMD(**solver_options))
+    status = model.solve(COIN_CMD(**solver_options))
     assert status == LpStatusOptimal, "Model in local search not solved optimally"
     new_solution = extract_solution(model)
 

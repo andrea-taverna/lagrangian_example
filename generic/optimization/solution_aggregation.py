@@ -5,8 +5,6 @@ import pandas as pd
 from generic.optimization.model import MathematicalProgram, Solution
 from generic.optimization.solution_extraction import extract_solution
 
-T = TypeVar("T")
-
 
 def extract_and_aggregate_solutions(subproblems: Dict[Any, MathematicalProgram], id_name: List[str]) -> Solution:
     """
@@ -22,18 +20,19 @@ def extract_and_aggregate_solutions(subproblems: Dict[Any, MathematicalProgram],
     """
     # extract solutions from subproblems as dict {subproblem_id:solution}
     sub_solutions = {sub_id: extract_solution(model) for sub_id, model in subproblems.items()}
-    # extract the keys in the first subproblem's solution
-    solution_keys = list(peek_dict_values(sub_solutions).keys())
+    # extract the fields names (key) in the first subproblem's solution
+    fields_names = list(peek_dict_values(sub_solutions).keys())
 
-    # index solutions' values by key field, yielding  dict-of-dict {solution_key : {subproblem_id: solution_value}}
+    # index solutions' values by field (key), yielding  dict-of-dict {field_key : {subproblem_id: solution_value}}
     full_solution_dict = {
-        k: {sub_id: solution[k] for sub_id, solution in sub_solutions.items()} for k in solution_keys
+        k: {sub_id: solution[k] for sub_id, solution in sub_solutions.items()} for k in fields_names
     }
 
-    # merge the values for each solution_key
-    temp = {k: _aggregate(data, id_name) for k, data in full_solution_dict.items()}
+    # merge the values across subproblems for each fields
+    return {k: _aggregate(data, id_name) for k, data in full_solution_dict.items()}
 
-    return temp
+
+T = TypeVar("T")
 
 
 def _aggregate(data: Dict[Any, Union[float, pd.Series]], id_name: List[str]) -> pd.Series:
@@ -44,7 +43,7 @@ def _aggregate(data: Dict[Any, Union[float, pd.Series]], id_name: List[str]) -> 
         id_name: index names for the keys
 
     Returns:
-
+        aggregated pandas series.
     """
     sample = peek_dict_values(data)
 
