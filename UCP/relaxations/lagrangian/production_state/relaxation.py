@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from pulp import COIN_CMD, lpSum, LpStatusOptimal
 
-from UCP.model.ucp import UCPData
+from UCP.model import UCPData
 from UCP.relaxations.lagrangian.production_state.subproblems import (
     make_single_UCP,
     make_economic_dispatch,

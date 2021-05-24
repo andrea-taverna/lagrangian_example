@@ -2,8 +2,8 @@ import logging
 
 from pulp import COIN_CMD, LpStatusOptimal
 
-from UCP.input.data import UCPData
-from UCP.model.ucp import create_model
+from UCP.data import UCPData
+from UCP.model import create_model
 from generic.optimization.model import Solution
 from generic.optimization.solution_extraction import (
     compute_multipliers,

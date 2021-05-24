@@ -3,7 +3,7 @@ from typing import Iterable, Tuple, Dict, Any
 
 import pandas as pd
 
-from UCP.input.data import UCPData
+from UCP.data import UCPData
 
 
 # Running Length Encoding of sequence (from R)

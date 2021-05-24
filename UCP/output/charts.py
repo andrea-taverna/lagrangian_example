@@ -30,7 +30,7 @@ def enp_vs_eie(data, solution: Solution) -> ggplot:
     return (
         ggplot(demand_gap, aes(x="period", y="value", color="Series", linetype="Series"))
         + geom_step(size=2)
-        + labs(x="period", y="Value [MW]")
+        + labs(x="period", y="Value [MWh]")
         + ggtitle("Demand mismatch")
     )
 
@@ -77,11 +77,13 @@ def plant_utilization(data, solution: Solution) -> ggplot:
 
     temp = avg_coef[["plant", "avg_coef"]].merge(utilization, sort=True)[["plant", "utilization", "avg_coef"]]
 
+
+    temp.to_csv()
     return (
         ggplot(temp, aes("avg_coef", "utilization"))
         + geom_point(size=2)
         + geom_text(aes(y="utilization+0.04", label="plant"))
         + scale_y_continuous(labels=percent_format())
-        + labs(x="Avg. Hourly cost [€/MW]", y="Utilization %", label="Plant id")
+        + labs(x="Avg. Hourly cost [€/MW]", y="Utilization % (total production/total max production)", label="Plant id")
         + ggtitle("Utilization vs Hourly cost")
     )

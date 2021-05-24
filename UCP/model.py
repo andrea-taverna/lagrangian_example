@@ -2,7 +2,7 @@ from itertools import product
 
 from pulp import LpProblem, LpBinary, lpSum, LpMinimize, LpVariable
 
-from UCP.input.data import UCPData
+from UCP.data import UCPData
 from generic.optimization.constraint_adder import add_constraint
 from generic.optimization.model import MathematicalProgram, OptimizationSense
 

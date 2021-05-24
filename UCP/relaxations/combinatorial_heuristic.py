@@ -4,8 +4,8 @@ from typing import List, Dict, Any
 import pandas as pd
 from pulp import COIN_CMD, LpVariable, LpStatusOptimal
 
-from UCP.input.data import UCPData
-import UCP.model.ucp as ucp_model
+from UCP.data import UCPData
+import UCP.model as ucp_model
 from generic.optimization.model import MathematicalProgram, Solution
 from UCP.relaxations import heuristic_model
 from generic.optimization.solution_extraction import extract_solution
