@@ -51,7 +51,7 @@ def production_by_plant(data, solution: Solution) -> ggplot:
         + scale_linetype_manual(
             breaks=["p", "min_power", "max_power"],
             labels=["production", "min power", "max power"],
-                values=["solid","dashed","dashed"],
+            values=["solid", "dashed", "dashed"],
         )
         + scale_alpha_manual(
             breaks=["p", "min_power", "max_power"],
@@ -76,7 +76,6 @@ def plant_utilization(data, solution: Solution) -> ggplot:
     utilization["utilization"] = utilization["p"] / (utilization["max_power"] * len(data.loads))
 
     temp = avg_coef[["plant", "avg_coef"]].merge(utilization, sort=True)[["plant", "utilization", "avg_coef"]]
-
 
     temp.to_csv()
     return (

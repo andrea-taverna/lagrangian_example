@@ -44,18 +44,14 @@ def combinatorial_heuristic(
     model.solve(COIN_CMD(**combination_options))
 
     # extract the
-    commit_values = [
-        (plant, com, v.value()) for (plant, com), v in model.vars["commit"].items()
-    ]
+    commit_values = [(plant, com, v.value()) for (plant, com), v in model.vars["commit"].items()]
     commit_values = sorted(commit_values, key=operator.itemgetter(0))
     grouper = groupby(commit_values, operator.itemgetter(0))
     pats_per_plants = {plant: list(group) for plant, group in grouper}
 
     plants_to_fix = {
         plant
-        for plant, min_on, min_off in data.thermal_plants[
-            ["plant", "min_on", "min_off"]
-        ].itertuples(index=False)
+        for plant, min_on, min_off in data.thermal_plants[["plant", "min_on", "min_off"]].itertuples(index=False)
         if min_off > flexibility_limit[0] or min_on > flexibility_limit[1]
     }
     selected_pats = {
@@ -63,9 +59,7 @@ def combinatorial_heuristic(
         for plant, pats in pats_per_plants.items()
         if plant in plants_to_fix
     }
-    selected_commitments = {
-        plant: commitments[pat[1]] for plant, pat in selected_pats.items()
-    }
+    selected_commitments = {plant: commitments[pat[1]] for plant, pat in selected_pats.items()}
     final_model = ucp_model.create_model(data)
     _fix_commitments(data, final_model, selected_commitments)
     status = final_model.solve(COIN_CMD(**final_model_options))
@@ -80,6 +74,6 @@ def _fix_commitments(
 ):
     for plant, commitment in selected_commitments.items():
         for time in data.loads["period"]:
-            state : LpVariable= model.vars["s"][plant, time]
+            state: LpVariable = model.vars["s"][plant, time]
             state.upBound = selected_commitments[plant][plant, time]
             state.lowBound = selected_commitments[plant][plant, time]

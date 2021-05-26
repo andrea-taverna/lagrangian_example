@@ -7,6 +7,7 @@ from generic.optimization.model import Solution
 
 LARGE_VALUE = 1e80
 
+
 @dataclass
 class AlgorithmConfiguration:
     primal_feasibility_tolerance: float

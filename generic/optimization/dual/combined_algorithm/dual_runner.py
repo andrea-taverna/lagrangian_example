@@ -63,14 +63,18 @@ class DualAlgorithmRunner:
 
         return self.master_bound, new_multipliers, algorithm
 
-    def _compute_new_multipliers(self, value: float, intercept: float, vect_subgradient: ndarray) -> Tuple[ndarray, str]:
+    def _compute_new_multipliers(
+        self, value: float, intercept: float, vect_subgradient: ndarray
+    ) -> Tuple[ndarray, str]:
         self._choose_dual_algorithm()
         if self.sgd_flag:
             new_vect_multipliers = self.sgd_alg(value, vect_subgradient)
             self.sgd_counter += 1
             algorithm = self.configuration.sgd_name
         else:
-            self.master_bound, new_vect_multipliers = self.cp_alg(value, intercept, vect_subgradient, **self.configuration.cp_solver_options)
+            self.master_bound, new_vect_multipliers = self.cp_alg(
+                value, intercept, vect_subgradient, **self.configuration.cp_solver_options
+            )
             self.cp_counter += 1
             algorithm = self.configuration.cp_name
 
@@ -85,4 +89,4 @@ class DualAlgorithmRunner:
             # choose SGD
             self.cp_counter = 0
             self.sgd_flag = True
-            self.sgd_alg = SubgradientMethod(initial_solution=self.vect_multipliers,**self.sgd_configuration)
+            self.sgd_alg = SubgradientMethod(initial_solution=self.vect_multipliers, **self.sgd_configuration)

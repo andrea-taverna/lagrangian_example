@@ -22,7 +22,6 @@ class TargetTracker(metaclass=ABCMeta):
         pass
 
 
-
 class FixedTargetTracker(TargetTracker):
     overestimation_factor: float
     record_value: float

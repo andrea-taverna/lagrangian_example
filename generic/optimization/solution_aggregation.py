@@ -24,9 +24,7 @@ def extract_and_aggregate_solutions(subproblems: Dict[Any, MathematicalProgram],
     fields_names = list(peek_dict_values(sub_solutions).keys())
 
     # index solutions' values by field (key), yielding  dict-of-dict {field_key : {subproblem_id: solution_value}}
-    full_solution_dict = {
-        k: {sub_id: solution[k] for sub_id, solution in sub_solutions.items()} for k in fields_names
-    }
+    full_solution_dict = {k: {sub_id: solution[k] for sub_id, solution in sub_solutions.items()} for k in fields_names}
 
     # merge the values across subproblems for each fields
     return {k: _aggregate(data, id_name) for k, data in full_solution_dict.items()}
@@ -61,4 +59,3 @@ def _aggregate(data: Dict[Any, Union[float, pd.Series]], id_name: List[str]) -> 
 
 def peek_dict_values(my_dict: Dict[Any, T]) -> T:
     return next(v for v in my_dict.values())
-

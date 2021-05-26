@@ -32,19 +32,13 @@ def bounds(kpis: pd.DataFrame) -> ggplot:
 
 def gap(kpis: pd.DataFrame) -> ggplot:
     data = pd.melt(
-        kpis[
-            [
-                "iteration",
-                "dual_algorithm",
-                "optimality_gap"
-            ]
-        ],
+        kpis[["iteration", "dual_algorithm", "optimality_gap"]],
         id_vars=["iteration", "dual_algorithm"],
     )
 
     p = (
         ggplot(data, aes(x="iteration", y="value"))
-        + geom_line(aes(color="variable"),size=1)
+        + geom_line(aes(color="variable"), size=1)
         + scale_y_continuous(labels=mizani.formatters.percent_format())
         + scale_color_discrete(guide=False)
         + ggtitle("Optimality gap %")

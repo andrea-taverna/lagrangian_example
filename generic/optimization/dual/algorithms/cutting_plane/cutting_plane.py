@@ -17,12 +17,12 @@ class CuttingPlane:
     model: CPLPModel
 
     def __init__(
-                self,
-                sense: OptimizationSense,
-                var_lb: np.array,
-                var_ub: np.ndarray,
-                optimality_tolerance=1e-6,
-                **kwargs,
+        self,
+        sense: OptimizationSense,
+        var_lb: np.array,
+        var_ub: np.ndarray,
+        optimality_tolerance=1e-6,
+        **kwargs,
     ):
         assert var_ub.size == var_lb.size
         self.sense = sense
@@ -32,10 +32,11 @@ class CuttingPlane:
 
         self.model = CPLPModel(self.sense, self.var_lb, self.var_ub)
 
-    def add_cut(self, intercept:float, subgradient: np.ndarray):
+    def add_cut(self, intercept: float, subgradient: np.ndarray):
         self.model.add_cut(intercept, subgradient)
 
-    def __call__(self, value: float, intercept: float, subgradient: np.ndarray, **solver_options) -> Tuple[float, np.ndarray]:
-        self.add_cut(intercept,subgradient)
+    def __call__(
+        self, value: float, intercept: float, subgradient: np.ndarray, **solver_options
+    ) -> Tuple[float, np.ndarray]:
+        self.add_cut(intercept, subgradient)
         return self.model.solve(**solver_options)
-

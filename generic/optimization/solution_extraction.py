@@ -44,12 +44,12 @@ def compute_multipliers(model: MathematicalProgram, solution: Solution, **kwargs
         a series_dict with multipliers for each constraint.
     """
     # extract variables that are integer/non-continuous
-    int_vars = {name: {k: v for k,v in vars.items() if v.cat != LpContinuous} for name, vars in model.vars.items()}
+    int_vars = {name: {k: v for k, v in vars.items() if v.cat != LpContinuous} for name, vars in model.vars.items()}
 
     # if there are integer variables, fix their values to the solution's, then solve the model as an LP
     fixed = False
     previous_bounds = {}
-    if sum(map(len,int_vars.values()))>0:
+    if sum(map(len, int_vars.values())) > 0:
         previous_bounds = fix_variables(int_vars, model, solution)
         fixed = True
 
@@ -65,7 +65,7 @@ def compute_multipliers(model: MathematicalProgram, solution: Solution, **kwargs
     return multipliers
 
 
-def extract_multipliers(model:MathematicalProgram) -> OrderedDict[str, pd.Series]:
+def extract_multipliers(model: MathematicalProgram) -> OrderedDict[str, pd.Series]:
     """
     Extract lagrangian multipliers from solved model.
     TODO: add multiplier extractions for variables bounds
@@ -76,14 +76,15 @@ def extract_multipliers(model:MathematicalProgram) -> OrderedDict[str, pd.Series
     Returns:
         dict of series containing the multipliers for each constraint
     """
-    def _to_series(name:str, cons:Dict[Any, LpConstraint]) -> pd.Series:
+
+    def _to_series(name: str, cons: Dict[Any, LpConstraint]) -> pd.Series:
         table = pd.Series({k: c.pi for k, c in cons.items()}, name=name)
         index_name = model.index_names.get(name, None)
         if index_name is not None:
             table.index.name = index_name
         return table
 
-    return collections.OrderedDict([(k,_to_series(k,c)) for k,c in model.cons.items()])
+    return collections.OrderedDict([(k, _to_series(k, c)) for k, c in model.cons.items()])
 
 
 def dict_var_to_series(

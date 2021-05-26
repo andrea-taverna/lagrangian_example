@@ -15,9 +15,7 @@ class PolyakStepSizeRule:
         target_tracker: Callable[[float], float],
         size_coefficient: float = 1,
     ):
-        assert (
-            0 < size_coefficient < 2
-        ), "Size coefficient must be within (0,2), extremes excluded."
+        assert 0 < size_coefficient < 2, "Size coefficient must be within (0,2), extremes excluded."
         self.sense = sense
         self.size_coefficient = size_coefficient
         self.target_tracker = target_tracker

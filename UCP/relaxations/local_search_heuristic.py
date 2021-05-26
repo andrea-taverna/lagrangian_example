@@ -13,9 +13,7 @@ from generic.optimization.solution_extraction import (
 logger = logging.getLogger(__name__)
 
 
-def local_search(
-    data: UCPData, solution: Solution, change_points=5, radius=2, **solver_options
-) -> Solution:
+def local_search(data: UCPData, solution: Solution, change_points=5, radius=2, **solver_options) -> Solution:
     """
     Computes a new UCP solution by performing local-search on an already existing solution using a MIP solver.
     The algorithm is allowed to change commitments in some periods. It selects the periods with the highest
@@ -32,23 +30,13 @@ def local_search(
     model = create_model(data)
 
     # find time periods to change
-    energy_prices = compute_multipliers(model, solution, **solver_options)[
-        "demand_satisfaction"
-    ]
-    abs_nn_energy_prices = energy_prices[
-        (energy_prices > 0.5) | (energy_prices < -0.5)
-    ].abs()
-    periods_to_change = (
-        abs_nn_energy_prices.sort_values(ascending=False)
-        .astype(int)
-        .index[0:change_points]
-    )
+    energy_prices = compute_multipliers(model, solution, **solver_options)["demand_satisfaction"]
+    abs_nn_energy_prices = energy_prices[(energy_prices > 0.5) | (energy_prices < -0.5)].abs()
+    periods_to_change = abs_nn_energy_prices.sort_values(ascending=False).astype(int).index[0:change_points]
 
     cost = solution["total_production_cost"]
     demand_mismatch_cost = solution["demand_mismatch_cost"]
-    logger.warning(
-        f"Current cost: {cost:5.2g}. Demand mismatch cost:{demand_mismatch_cost:5.2g}"
-    )
+    logger.warning(f"Current cost: {cost:5.2g}. Demand mismatch cost:{demand_mismatch_cost:5.2g}")
 
     # fix the commitments
     min_time, max_time = data.loads["period"].min(), data.loads["period"].max()

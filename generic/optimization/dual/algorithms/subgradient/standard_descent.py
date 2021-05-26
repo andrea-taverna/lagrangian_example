@@ -19,9 +19,7 @@ class StepSizeRule(Protocol):
 
 
 class DeflectionRule(Protocol):
-    def __call__(
-        self, subgradient: np.ndarray, previous_direction: np.ndarray
-    ) -> Tuple[np.ndarray, float]:
+    def __call__(self, subgradient: np.ndarray, previous_direction: np.ndarray) -> Tuple[np.ndarray, float]:
         ...
 
 
@@ -59,9 +57,7 @@ class SubgradientMethod:
         if self._previous_direction is None:
             direction, combination_coef = subgradient.copy(), 1
         else:
-            direction, combination_coef = self._deflection_rule(
-                subgradient, self._previous_direction
-            )
+            direction, combination_coef = self._deflection_rule(subgradient, self._previous_direction)
 
         # project direction
         direction = self._project_direction(direction, self.current_solution)
@@ -86,18 +82,10 @@ class SubgradientMethod:
 
         return self.current_solution
 
-    def _project_direction(
-        self, direction: np.ndarray, current_solution: np.ndarray
-    ) -> np.ndarray:
+    def _project_direction(self, direction: np.ndarray, current_solution: np.ndarray) -> np.ndarray:
         # find direction components that need clipping
-        clip_lower = np.where(
-            (current_solution < self.var_lb + self.feasibility_tolerance)
-            & (direction < 0)
-        )
-        clip_upper = np.where(
-            (current_solution > self.var_ub - self.feasibility_tolerance)
-            & (direction > 0)
-        )
+        clip_lower = np.where((current_solution < self.var_lb + self.feasibility_tolerance) & (direction < 0))
+        clip_upper = np.where((current_solution > self.var_ub - self.feasibility_tolerance) & (direction > 0))
 
         # for the non-clipped components set dummy boundaries, the clipped ones are set to zero instead
         a_min = direction.copy() - 1e-4
@@ -118,4 +106,3 @@ class SubgradientMethod:
 
     def restart(self, **kwargs):
         self._previous_direction = None
-

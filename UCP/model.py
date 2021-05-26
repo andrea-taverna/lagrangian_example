@@ -32,10 +32,7 @@ def create_model(data: UCPData) -> MathematicalProgram:
     model = LpProblem("UCP", sense=LpMinimize)
 
     ### VARIABLES
-    p = {
-        (plant, t): LpVariable(f"p_{plant}_{t}", lowBound=0)
-        for (plant, t) in product(Plants, Time)
-    }
+    p = {(plant, t): LpVariable(f"p_{plant}_{t}", lowBound=0) for (plant, t) in product(Plants, Time)}
 
     s = LpVariable.dict("s", (Plants, Time), cat=LpBinary)
 
@@ -68,16 +65,18 @@ def create_model(data: UCPData) -> MathematicalProgram:
     }
 
     def_min_on = {
-        (plant, t): add_constraint(model,
-            s[plant, t] >= lpSum(up[plant, t1] for t1 in range(max(0, t - min_on), t)), f"def_min_on_{plant}_{t}"
+        (plant, t): add_constraint(
+            model, s[plant, t] >= lpSum(up[plant, t1] for t1 in range(max(0, t - min_on), t)), f"def_min_on_{plant}_{t}"
         )
         for ((plant, min_on), t) in product(TPP[["plant", "min_on"]].itertuples(index=False), Time)
         if t > 0
     }
 
     def_min_off = {
-        (plant, t): add_constraint(model,
-            s[plant, t] <= 1 - lpSum(dn[plant, t1] for t1 in range(max(0, t - min_power), t)), f"def_min_off_{plant}_{t}"
+        (plant, t): add_constraint(
+            model,
+            s[plant, t] <= 1 - lpSum(dn[plant, t1] for t1 in range(max(0, t - min_power), t)),
+            f"def_min_off_{plant}_{t}",
         )
         for ((plant, min_power), t) in product(TPP[["plant", "min_off"]].itertuples(index=False), Time)
         if t > 0
@@ -94,7 +93,8 @@ def create_model(data: UCPData) -> MathematicalProgram:
     }
 
     demand_satisfaction = {
-        t: add_constraint(model,
+        t: add_constraint(
+            model,
             lpSum(p[plant, t] for plant in Plants) + ENP[t] - EIE[t] == data.loads["value"][t],
             f"demand_satisfaction_{t}",
         )

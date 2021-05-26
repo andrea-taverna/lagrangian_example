@@ -9,6 +9,7 @@ from generic.optimization.model import Solution, OptimizationSense
 
 SeriesBundle = NamedTuple("Bundle", [("intercept", float), ("subgradient", OrderedDict[str, pd.Series])])
 
+
 @dataclass
 class PrimalInformation:
     solution: Solution
@@ -40,7 +41,7 @@ class LagrangianDecomposition(metaclass=ABCMeta):
     sense: OptimizationSense
 
     @abstractmethod
-    def fill_multipliers(self, value:float=0.0) -> OrderedDict[str, pd.Series]:
+    def fill_multipliers(self, value: float = 0.0) -> OrderedDict[str, pd.Series]:
         pass
 
     @abstractmethod

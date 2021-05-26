@@ -7,27 +7,27 @@ from generic.optimization.dual.combined_algorithm.bounds_tracker import BoundsTr
 from generic.series_dict import series_dict_to_array
 
 
-def kpis_algorithm(algorithm: CombinedAlgorithm) -> Dict[str,Any]:
+def kpis_algorithm(algorithm: CombinedAlgorithm) -> Dict[str, Any]:
     return {
-        "iteration":algorithm.iteration,
+        "iteration": algorithm.iteration,
         "dual_algorithm": algorithm.dual_algorithm,
         "relaxation_primal": algorithm.relaxation_primal,
         "relaxation_dual": algorithm.relaxation_dual,
-        "heuristic_solution":algorithm.heuristic_solution,
+        "heuristic_solution": algorithm.heuristic_solution,
         "multipliers": algorithm.current_multipliers,
         "dual_bound": algorithm.relaxation_dual.objective,
-        "master_bound": algorithm.master_bound
+        "master_bound": algorithm.master_bound,
     }
 
 
-def kpis_bounds(bounds: BoundsTracker) -> Dict[str,Any]:
+def kpis_bounds(bounds: BoundsTracker) -> Dict[str, Any]:
     return {
         "best_dual_bound": bounds.best_dual_solution.objective,
         "best_primal_bound": bounds.best_primal_solution.objective,
         "best_master_bound": bounds.best_master_bound,
         "optimality_gap": bounds.optimality_gap,
-        "cutting_plane_gap": bounds.cutting_plane_gap
-        }
+        "cutting_plane_gap": bounds.cutting_plane_gap,
+    }
 
 
 class KpiCollector:
@@ -38,9 +38,9 @@ class KpiCollector:
 
     def collect(self, algorithm: CombinedAlgorithm):
         kpis = {**kpis_algorithm(algorithm), **kpis_bounds(algorithm.bounds)}
-        if len(self.rows)==0:
-            self.rows = {k:[] for k in kpis.keys()}
-        for k,l in self.rows.items():
+        if len(self.rows) == 0:
+            self.rows = {k: [] for k in kpis.keys()}
+        for k, l in self.rows.items():
             l.append(kpis[k])
 
     def table(self):
@@ -51,7 +51,9 @@ def extract_kpis(table: pd.DataFrame):
     table = table.copy()
     table["v_multipliers"] = table["multipliers"].transform(lambda m: series_dict_to_array(**m))
     table["v_subgradient"] = table["relaxation_dual"].transform(lambda h: series_dict_to_array(**h.bundle.subgradient))
-    table["v_infeasibilities"] = table["relaxation_primal"].transform(lambda h: series_dict_to_array(**h.infeasibilities))
+    table["v_infeasibilities"] = table["relaxation_primal"].transform(
+        lambda h: series_dict_to_array(**h.infeasibilities)
+    )
 
     v_multipliers = pd.DataFrame(
         dict(v_multipliers=table["v_multipliers"], prev_multipliers=table["v_multipliers"].shift())

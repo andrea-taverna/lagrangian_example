@@ -22,7 +22,7 @@ from generic.optimization.solution_extraction import extract_solution
 
 
 class ProductionStateRelaxation(LagrangianDecomposition):
-    """"
+    """ "
     Implements a production/state lagrangian relaxation for the UCP
     """
 
@@ -49,10 +49,7 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         super().__init__(sense=OptimizationSense.MIN)
 
         self.data = data
-        self.single_ucps = {
-            plant: make_single_UCP(data, plant)
-            for plant in data.thermal_plants["plant"]
-        }
+        self.single_ucps = {plant: make_single_UCP(data, plant) for plant in data.thermal_plants["plant"]}
         self.econ_dispatch = make_economic_dispatch(data)
         self.penalty_increase_factor = penalty_increase_factor
 
@@ -92,12 +89,8 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         )
 
         return (
-            collections.OrderedDict(
-                [("min_production", multipliers_lb), ("max_production", multipliers_lb)]
-            ),
-            collections.OrderedDict(
-                [("min_production", multipliers_ub), ("max_production", multipliers_ub)]
-            ),
+            collections.OrderedDict([("min_production", multipliers_lb), ("max_production", multipliers_lb)]),
+            collections.OrderedDict([("min_production", multipliers_ub), ("max_production", multipliers_ub)]),
         )
 
     def violations(self, solution: Solution) -> OrderedDict[str, pd.Series]:
@@ -135,9 +128,7 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         )
         return infeasibilities
 
-    def evaluate(
-        self, multipliers: OrderedDict[str, pd.Series], **kwargs
-    ) -> Tuple[PrimalInformation, DualInformation]:
+    def evaluate(self, multipliers: OrderedDict[str, pd.Series], **kwargs) -> Tuple[PrimalInformation, DualInformation]:
         """
         Returns the value of the Lagrangian Function (LF) for given multipliers
         Args:
@@ -195,8 +186,7 @@ class ProductionStateRelaxation(LagrangianDecomposition):
             s = problem.vars["s"]
             commitment_cost = problem.exprs["commitment_cost"]
             problem.model.setObjective(
-                commitment_cost
-                + lpSum(dual_coef[plant, t] * s[t] for t in self.data.loads["period"])
+                commitment_cost + lpSum(dual_coef[plant, t] * s[t] for t in self.data.loads["period"])
             )
 
         p = self.econ_dispatch.vars["p"]
@@ -215,18 +205,14 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         Returns:
             a tuple (Solution, LF_value)
         """
-        ucp_solution = extract_and_aggregate_solutions(
-            self.single_ucps, id_name=["plant"]
-        )
+        ucp_solution = extract_and_aggregate_solutions(self.single_ucps, id_name=["plant"])
 
         edp_solution = extract_solution(self.econ_dispatch)
 
         assert len(set(ucp_solution.keys()).intersection(edp_solution.keys())) == 0
         solution = {**ucp_solution, **edp_solution}
 
-        single_ucps_obj = sum(
-            problem.model.objective.value() for problem in self.single_ucps.values()
-        )
+        single_ucps_obj = sum(problem.model.objective.value() for problem in self.single_ucps.values())
         LF_value = single_ucps_obj + self.econ_dispatch.model.objective.value()
 
         return solution, LF_value
@@ -256,9 +242,7 @@ class ProductionStateRelaxation(LagrangianDecomposition):
         """
         return self._original_objective(solution)
 
-    def information_from_primal_solution(
-        self, solution: Solution, **kwargs
-    ) -> Tuple[PrimalInformation, SeriesBundle]:
+    def information_from_primal_solution(self, solution: Solution, **kwargs) -> Tuple[PrimalInformation, SeriesBundle]:
         """
         Computes primal and dual information from a solution **to the original problem**
 

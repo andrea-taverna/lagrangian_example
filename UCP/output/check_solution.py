@@ -42,8 +42,12 @@ def check_updown_constraints(states: pd.Series, data: UCPData):
 
     max_time = data.loads["period"].max()
     rles["OK"] = False
-    rles.loc[rles["value"] == 0, "OK"] = rles.apply(lambda r: r["duration"] >= r["min_off"] or (r["start"]==0 or r["end"]==max_time), axis=1)
-    rles.loc[rles["value"] == 1, "OK"] = rles.apply(lambda r: r["duration"] >= r["min_on"] or (r["start"]==0 or r["end"]==max_time), axis=1)
+    rles.loc[rles["value"] == 0, "OK"] = rles.apply(
+        lambda r: r["duration"] >= r["min_off"] or (r["start"] == 0 or r["end"] == max_time), axis=1
+    )
+    rles.loc[rles["value"] == 1, "OK"] = rles.apply(
+        lambda r: r["duration"] >= r["min_on"] or (r["start"] == 0 or r["end"] == max_time), axis=1
+    )
 
     return rles
 

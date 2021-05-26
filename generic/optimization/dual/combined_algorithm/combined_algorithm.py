@@ -14,6 +14,7 @@ from generic.optimization.dual.lagrangian_decomposition import (
     LagrangianDecomposition,
     PrimalInformation,
     DualInformation,
+    SeriesBundle,
 )
 
 from generic.optimization.model import Solution
@@ -99,39 +100,32 @@ class CombinedAlgorithm:
                     self.dual_algorithm,
                 ) = self.dual_runner.new_multipliers(self.relaxation_dual)
 
-            ## Evaluate multipliers by solving the lagrangian subproblem
+            ## Evaluate multipliers by solving the lagrangian subproblem and collect primal and dual solutions
             self.relaxation_primal, self.relaxation_dual = self.relaxation.evaluate(
                 self.current_multipliers, **self.configuration.relaxation_solver_options
             )
             self.primal_solutions.append(self.relaxation_primal.solution)
             self.dual_solutions.append(self.current_multipliers)
 
-            ## Update best dual bound and primal bound
+            ## Update global bounds
             self.bounds.update_dual_bound(self.relaxation_dual)
             self.bounds.update_primal_bound(self.relaxation_primal)
             self.bounds.update_master_bound(self.master_bound)
 
             ## Maybe run primal heuristic
-            # and update primal bound if it improves
-            if (
-                self.iteration > 0
-                and self.iteration % self.configuration.heuristic_frequency == 0
-            ):
-                self.heuristic_solution, bundle = self.heuristic_algorithm(
-                    self.primal_solutions
-                )
+            if self.iteration > 0 and self.iteration % self.configuration.heuristic_frequency == 0:
+                self.heuristic_solution, bundle = self.heuristic_algorithm(self.primal_solutions)
                 if self.heuristic_solution is not None:
-                    self.primal_solutions.append(self.heuristic_solution.solution)
+                    # exploit the solution
                     self.bounds.update_primal_bound(self.heuristic_solution)
+                    self.primal_solutions.append(self.heuristic_solution.solution)
                     self.dual_runner.add_cut(bundle.intercept, bundle.subgradient)
             else:
                 self.heuristic_solution = None
 
             ## Check convergence
             self.converged = self.check_convergence()
-            self.stop = (
-                self.converged or self.iteration >= self.configuration.max_iterations
-            )
+            self.stop = self.converged or self.iteration >= self.configuration.max_iterations
 
         return self.stop
 
@@ -140,9 +134,7 @@ class CombinedAlgorithm:
             self.bounds.optimality_gap < self.configuration.max_gap
             or self.bounds.cutting_plane_gap < self.configuration.max_cp_gap
         )
-        vect_subgradient = series_dict_to_array(
-            **self.relaxation_dual.bundle.subgradient
-        )
+        vect_subgradient = series_dict_to_array(**self.relaxation_dual.bundle.subgradient)
         sgd_norm = np.linalg.norm(vect_subgradient)
-        is_subgradient_small =  sgd_norm <= self.configuration.subgradient_tolerance
+        is_subgradient_small = sgd_norm <= self.configuration.subgradient_tolerance
         return are_gaps_below_threshold and is_subgradient_small
