@@ -77,7 +77,6 @@ def plant_utilization(data, solution: Solution) -> ggplot:
 
     temp = avg_coef[["plant", "avg_coef"]].merge(utilization, sort=True)[["plant", "utilization", "avg_coef"]]
 
-    temp.to_csv()
     return (
         ggplot(temp, aes("avg_coef", "utilization"))
         + geom_point(size=2)
