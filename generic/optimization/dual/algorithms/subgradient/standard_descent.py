@@ -104,5 +104,5 @@ class SubgradientMethod:
     def _deflection_rule(self, subgradient: np.ndarray, previous_direction: np.ndarray) -> Tuple[np.ndarray, float]:
         return self.deflection_fun(subgradient, previous_direction)
 
-    def restart(self, **kwargs):
+    def restart(self):
         self._previous_direction = None
