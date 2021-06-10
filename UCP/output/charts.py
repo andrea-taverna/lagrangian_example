@@ -1,5 +1,5 @@
 import pandas as pd
-from mizani.formatters import percent_format
+from mizani.formatters import percent_format, percent
 from plotnine import *
 
 
@@ -24,13 +24,17 @@ def total_production(data, solution: Solution) -> ggplot:
 
 
 def enp_vs_eie(data, solution: Solution) -> ggplot:
-    demand_gap = pd.merge(solution["EIE"], solution["ENP"], on="period").reset_index()
-    demand_gap = pd.melt(demand_gap, id_vars="period", var_name="Series")
+    demand_gap = pd.merge(solution["EIE"], solution["ENP"], on="period")
+    demand = data.loads[["period","value"]].set_index("period")["value"]
+    demand_gap["ENP"] /= demand
+    demand_gap["EIE"] /= demand
+    demand_gap = pd.melt(demand_gap.reset_index(), id_vars="period", var_name="Series")
 
     return (
         ggplot(demand_gap, aes(x="period", y="value", color="Series", linetype="Series"))
         + geom_step(size=2)
-        + labs(x="period", y="Value [MWh]")
+        + scale_y_continuous(labels=percent)
+        + labs(x="period", y="Demand mismatch%")
         + ggtitle("Demand mismatch")
     )
 
