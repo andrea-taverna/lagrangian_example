@@ -18,7 +18,7 @@ def total_production(data, solution: Solution) -> ggplot:
         + geom_step(size=2)
         + scale_color_discrete(name="Series", breaks=["load", "p"], labels=["Load", "Production"])
         + scale_linetype_discrete(name="Series", breaks=["load", "p"], labels=["Load", "Production"])
-        + labs(y="Value [MW]")
+        + labs(y="Value [MWh]")
         + ggtitle("Production vs Load")
     )
 
@@ -82,10 +82,9 @@ def plant_utilization(data, solution: Solution) -> ggplot:
     temp = avg_coef[["plant", "avg_coef"]].merge(utilization, sort=True)[["plant", "utilization", "avg_coef"]]
 
     return (
-        ggplot(temp, aes("avg_coef", "utilization"))
-        + geom_point(size=2)
-        + geom_text(aes(y="utilization+0.04", label="plant"))
+        ggplot(temp, aes("avg_coef", "utilization", label="plant"))
+        + geom_label()
         + scale_y_continuous(labels=percent_format())
-        + labs(x="Avg. Hourly cost [€/MW]", y="Utilization % (total production/total max production)", label="Plant id")
+        + labs(x="Avg. Hourly cost [€/MWh]", y="Utilization % (total production/total max production)", label="Plant id")
         + ggtitle("Utilization vs Hourly cost")
     )

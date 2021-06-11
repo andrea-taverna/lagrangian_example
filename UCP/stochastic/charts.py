@@ -35,28 +35,31 @@ def compute_intervals(
     return intervals
 
 
-def confidence_intervals(data=None, fill="grey", inherit_aes=True, name:str="Confidence Interval"):
-    return [geom_ribbon(
-        data=data,
-        mapping=aes("period", ymin="min", ymax="max", alpha=alpha_values[0]),
-        fill=fill,
-        show_legend=True,
-        inherit_aes=inherit_aes,
-    ) , geom_ribbon(
-        data=data,
-        mapping=aes("period", ymin="10%", ymax="90%", alpha=alpha_values[1]),
-        fill=fill,
-        show_legend=False,
-        inherit_aes=inherit_aes,
-    ) , geom_ribbon(
-        data=data,
-        mapping=aes("period", ymin="25%", ymax="75%", alpha=alpha_values[2]),
-        fill=fill,
-        show_legend=False,
-        inherit_aes=inherit_aes,
-    ) , scale_alpha_continuous(
-        range=(0.1, 0.5), name=name, breaks=alpha_breaks, na_value=-1, labels=alpha_labels
-    )]
+def confidence_intervals(data=None, fill="grey", inherit_aes=True, name: str = "Confidence Interval"):
+    return [
+        geom_ribbon(
+            data=data,
+            mapping=aes("period", ymin="min", ymax="max", alpha=alpha_values[0]),
+            fill=fill,
+            show_legend=True,
+            inherit_aes=inherit_aes,
+        ),
+        geom_ribbon(
+            data=data,
+            mapping=aes("period", ymin="10%", ymax="90%", alpha=alpha_values[1]),
+            fill=fill,
+            show_legend=False,
+            inherit_aes=inherit_aes,
+        ),
+        geom_ribbon(
+            data=data,
+            mapping=aes("period", ymin="25%", ymax="75%", alpha=alpha_values[2]),
+            fill=fill,
+            show_legend=False,
+            inherit_aes=inherit_aes,
+        ),
+        scale_alpha_continuous(range=(0.1, 0.5), name=name, breaks=alpha_breaks, na_value=-1, labels=alpha_labels),
+    ]
 
 
 def total_production(data, solution: Solution) -> ggplot:
@@ -73,14 +76,14 @@ def total_production(data, solution: Solution) -> ggplot:
         + geom_line(size=2)
         + scale_color_discrete(name="Series", breaks=["load", "p"], labels=["Exp. Load", "Exp. Production"])
         + scale_linetype_discrete(name="Series", breaks=["load", "p"], labels=["Exp. Load", "Exp. Production"])
-        + labs(y="Value [MW]")
+        + labs(y="Value [MWh]")
         + ggtitle("Production vs Load")
     )
 
 
-def enp_vs_eie(data:UCPData, scenarios: List[ScenarioInfo] , solution: Solution) -> ggplot:
+def enp_vs_eie(data: UCPData, scenarios: List[ScenarioInfo], solution: Solution) -> ggplot:
     demand_per_scenario, _ = scen_gen.to_pandas(*scenarios)
-    demand_gap = (solution["EIE"] - solution["ENP"])
+    demand_gap = solution["EIE"] - solution["ENP"]
 
     demand_gap /= demand_per_scenario
     demand_gap.name = "demand_gap"
@@ -140,15 +143,34 @@ def plant_utilization(data, solution: Solution) -> ggplot:
         utilization[c] = utilization[c] / (utilization["max_power"] * len(data.loads))
 
     temp = avg_coef[["plant", "avg_coef"]].merge(utilization, sort=True)
-    avg_coef_delta = (avg_coef["avg_coef"].max() - avg_coef["avg_coef"].min())/35
-    temp["x_label"] = temp["avg_coef"] - avg_coef_delta
+
+    out_error_bars = temp[["min", "max", "avg_coef"]].copy(deep=False)
+    out_error_bars["type"] = "out"
+
+    in_error_bars = temp[["25%", "75%", "avg_coef"]].copy(deep=False)
+    in_error_bars["type"] = "in"
+
     return (
         ggplot(temp, aes("avg_coef", "mean"))
-        + geom_point(size=2)
-        + geom_text(aes(y="mean+0.02", x="x_label", label="plant"))
-        + geom_errorbar(aes(ymin="min", ymax="max"), width=0, color="red")
-        + geom_errorbar(aes(ymin="25%", ymax="75%"), width=0.05, color="green")
+        + geom_errorbar(
+            aes(x="avg_coef", ymin="min", ymax="max", color="type"),
+            data=out_error_bars,
+            width=0.1,
+            size=1,
+            inherit_aes=False,
+        )
+        + geom_errorbar(
+            aes(x="avg_coef", ymin="25%", ymax="75%", color="type"),
+            data=in_error_bars,
+            width=0.1,
+            size=1,
+            inherit_aes=False,
+        )
+        + geom_label(aes(label="plant"))
         + scale_y_continuous(labels=percent_format())
-        + labs(x="Avg. Hourly cost [€/MW]", y="Utilization % (total production/total max production)", label="Plant id")
+        + scale_color_discrete(
+            breaks=["out", "in"], labels=["100%", "50%"], name="Confidence interval")
+        + labs(
+            x="Avg. Hourly cost [€/MWh]", y="Utilization % (total production/total max production)")
         + ggtitle("Utilization vs Hourly cost")
     )

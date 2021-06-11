@@ -44,8 +44,8 @@ def create_model(data: UCPData, scenarios: List[ScenarioInfo]) -> MathematicalPr
     up = LpVariable.dict("up", (Plants, Time), cat=LpBinary)
     dn = LpVariable.dict("dn", (Plants, Time), cat=LpBinary)
 
-    EIE = {(t, scen):  LpVariable(f"EIE_{t}_{scen}", lowBound=0) for (t,scen) in product(Time, Scenarios)}
-    ENP = {(t, scen):  LpVariable(f"ENP_{t}_{scen}", lowBound=0) for (t,scen) in product(Time, Scenarios)}
+    EIE = {(t, scen): LpVariable(f"EIE_{t}_{scen}", lowBound=0) for (t, scen) in product(Time, Scenarios)}
+    ENP = {(t, scen): LpVariable(f"ENP_{t}_{scen}", lowBound=0) for (t, scen) in product(Time, Scenarios)}
 
     def_up = {
         (plant, t): add_constraint(model, up[plant, t] >= s[plant, t] - s[plant, t - 1], f"def_up_{plant}_{t}")
@@ -116,12 +116,12 @@ def create_model(data: UCPData, scenarios: List[ScenarioInfo]) -> MathematicalPr
 
     ### OBJECTIVE
     thermal_production_cost = lpSum(
-        lpSum(l_cost * scenarios[scen].probability * p[plant, t, scen] for scen in Scenarios) + c_cost * s[plant, t]
+        l_cost * lpSum(scenarios[scen].probability * p[plant, t, scen] for scen in Scenarios) + c_cost * s[plant, t]
         for ((plant, l_cost, c_cost), t) in product(TPP[["plant", "l_cost", "c_cost"]].itertuples(index=False), Time)
     )
 
     demand_mismatch_cost = lpSum(
-        scenarios[scen].probability * 2 * ( data.c_EIE * EIE[t, scen] + data.c_ENP * ENP[t, scen])
+        scenarios[scen].probability * (data.c_EIE * EIE[t, scen] + data.c_ENP * ENP[t, scen])
         for (t, scen) in product(Time, Scenarios)
     )
     total_production_cost = thermal_production_cost + demand_mismatch_cost
