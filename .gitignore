@@ -1,3 +1,7 @@
 .*
 __pycache__
 !.gitignore
+/UCP/doc/*.log
+/UCP/doc/*.aux
+/UCP/doc/*.log
+/UCP/doc/*.out
