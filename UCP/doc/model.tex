@@ -12,30 +12,15 @@
 \usepackage{trace}
 \usepackage{tikz}
 
-\newcommand{\DefEnumStuff}[3]{%
-  \newcounter{count#2}%
-  \setcounter{count#2}{0}%
-  \newenvironment{#1}%
-  {\let\olditem\item%
-    \begin{enumerate}[label={#3\arabic*}., ref=\arabic*]%
-      \setcounter{enumi}{\value{count#2}}%
-      \renewcommand{\item}[1][]{%
-        \refstepcounter{count#2} \olditem%
-        \ifthenelse{ \equal{####1}{} }{}{\label{####1}}%
-      }%
-    }%
-    {\end{enumerate}}%
-  \expandafter\newcommand\csname refstep#2\endcsname[1] {{\refstepcounter{count#2}\label{##1}}}%
-  \newrefformat{#2}{\hyperref[{##1}]{#3{\expandafter\ref*{##1}}}}%
-  }%
 
-  
-  \newcommand{\tagref}[1]{{\tag{\prettyref{#1}}}}
 
-  \newcommand{\EIE}{\text{EIE}} 
-  \newcommand{\ENP}{\text{ENP}}
-  \begin{document}
+\newcommand{\EIE}{\text{EIE}} 
+\newcommand{\ENP}{\text{ENP}}
 
+\title{Unit Commitment Problem}
+\begin{document}
+
+\section
   \section*{Original problem}
 
   \begin{align}
@@ -60,16 +45,16 @@ Due to constraint relaxation slack variables $EIE$ and $ENP$ are zero for every 
 
 
 Objective function:
-\begin{align*}
-  \min &\sum_{i\in I, t\in T} \left ( l_{it} p_{it} + c_{it} s_{it} \right ) + \sum_{t\in T} \lambda_t (\sum_{i\in I} D_t - p_{it}) \\
-   &=\\
-   \min &\sum_{i\in I, t\in T} \left ( (l_{it} -\lambda_t) p_{it} + c_{it} s_{it} \right ) + \lambda_t D_t
-\end{align*}
+% \begin{align*}
+%   \min &\sum_{i\in I, t\in T} \left ( l_{it} p_{it} + c_{it} s_{it} \right ) + \sum_{t\in T} \lambda^+_t (D_t - \sum_{i\in I} p_{it}) \sum_{t\in T} \lambda^-_t (\sum_{i\in I} p_{it} - D_t) \\
+%    &=\\
+%    \min &\sum_{i\in I, t\in T} \left ( (l_{it} -\lambda^+_t + \lambda^-_t) p_{it} + c_{it} s_{it} \right ) + (\lambda^+_t - \lambda^-_t)  D_t
+% \end{align*}
 
-  \begin{align}
-     \min &\sum_{i\in I, t\in T} \left ( (l_{it} -\lambda_t) p_{it} + c_{it} s_{it} \right ) + \lambda_t D_t
-  \text{s.t.~} & \eqref{cons:orig-first}-\eqref{cons:orig-min-down}, \eqref{cons:orig-bin-vars} 
-\end{align}
+%   \begin{align}
+%      \min &\sum_{i\in I, t\in T} \left ( (l_{it} -(\lambda^+_t - \lambda^-_t)) p_{it} + c_{it} s_{it} \right ) + (\lambda^+_t - \lambda^-_t) D_t
+%   \text{s.t.~} & \eqref{cons:orig-first}-\eqref{cons:orig-min-down}, \eqref{cons:orig-bin-vars} 
+% \end{align}
 
 \subsection*{Dualize Production/State constraint}
 

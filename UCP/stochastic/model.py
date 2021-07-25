@@ -71,7 +71,7 @@ def create_model(data: UCPData, scenarios: List[ScenarioInfo]) -> MathematicalPr
 
     def_min_on = {
         (plant, t): add_constraint(
-            model, s[plant, t] >= lpSum(up[plant, t1] for t1 in range(max(0, t - min_on), t)), f"def_min_on_{plant}_{t}"
+            model, s[plant, t] >= lpSum(up[plant, t1] for t1 in range(max(0, t - min_on+1), t+1)), f"def_min_on_{plant}_{t}"
         )
         for ((plant, min_on), t) in product(TPP[["plant", "min_on"]].itertuples(index=False), Time)
         if t > 0
@@ -80,10 +80,10 @@ def create_model(data: UCPData, scenarios: List[ScenarioInfo]) -> MathematicalPr
     def_min_off = {
         (plant, t): add_constraint(
             model,
-            s[plant, t] <= 1 - lpSum(dn[plant, t1] for t1 in range(max(0, t - min_power), t)),
+            s[plant, t] <= 1 - lpSum(dn[plant, t1] for t1 in range(max(0, t - min_off+1), t+1)),
             f"def_min_off_{plant}_{t}",
         )
-        for ((plant, min_power), t) in product(TPP[["plant", "min_off"]].itertuples(index=False), Time)
+        for ((plant, min_off), t) in product(TPP[["plant", "min_off"]].itertuples(index=False), Time)
         if t > 0
     }
 

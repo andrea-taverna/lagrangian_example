@@ -77,7 +77,7 @@ def make_single_UCP(data, plant) -> MathematicalProgram:
     def_min_on = {
         t: add_constraint(
             model,
-            s[t] >= lpSum(up[t1] for t1 in range(max(0, t - TPP["min_on"]), t)),
+            s[t] >= lpSum(up[t1] for t1 in range(max(0, t - TPP["min_on"]+1), t+1)),
             f"def_min_on_{plant}_{t}",
         )
         for t in Time
@@ -87,7 +87,7 @@ def make_single_UCP(data, plant) -> MathematicalProgram:
     def_min_off = {
         t: add_constraint(
             model,
-            s[t] <= 1 - lpSum(dn[t1] for t1 in range(max(0, t - TPP["min_off"]), t)),
+            s[t] <= 1 - lpSum(dn[t1] for t1 in range(max(0, t - TPP["min_off"]+1), t+1)),
             f"def_min_off_{plant}_{t}",
         )
         for t in Time

@@ -36,7 +36,7 @@ def local_search(data: UCPData, solution: Solution, change_points=5, radius=2, *
 
     cost = solution["total_production_cost"]
     demand_mismatch_cost = solution["demand_mismatch_cost"]
-    logger.warning(f"Current cost: {cost:5.2g}. Demand mismatch cost:{demand_mismatch_cost:5.2g}")
+    logger.warning(f"Local Search => Current cost: {cost:5.2g}. Demand mismatch cost:{demand_mismatch_cost:5.2g}")
 
     # fix the commitments
     min_time, max_time = data.loads["period"].min(), data.loads["period"].max()
@@ -59,7 +59,7 @@ def local_search(data: UCPData, solution: Solution, change_points=5, radius=2, *
     new_cost = new_solution["total_production_cost"]
     new_demand_mismatch_cost = new_solution["demand_mismatch_cost"]
     logger.warning(
-        f"New cost: {new_cost:5.2g}."
+        f"Local Search => New cost: {new_cost:5.2g}."
         + f"New demand mismatch cost:{new_demand_mismatch_cost:5.2g}. "
         + f"Improvement: {1-(new_cost/cost):5.2%}"
     )
