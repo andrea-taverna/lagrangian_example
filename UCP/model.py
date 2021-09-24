@@ -42,6 +42,7 @@ def create_model(data: UCPData) -> MathematicalProgram:
     EIE = LpVariable.dict("EIE", Time, lowBound=0)
     ENP = LpVariable.dict("ENP", Time, lowBound=0)
 
+    ### CONSTRAINTS
     def_up = {
         (plant, t): add_constraint(model, up[plant, t] >= s[plant, t] - s[plant, t - 1], f"def_up_{plant}_{t}")
         for (plant, t) in product(Plants, Time)

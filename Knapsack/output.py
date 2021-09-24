@@ -42,16 +42,16 @@ def plot_knapsack(problem: KnapsackProblem, label: bool = True, force_selected: 
     value, weight = knapsack_kpi(problem)
     used_capacity = weight / problem.capacity
     plot += ggtitle(
-        f"Knapsack problem with {len(problem.items_data)} items.\n"
+        f"Knapsack solution with {len(problem.items_data)} items and capacity {problem.capacity:5.2f}.\n"
         + f"Value:{value:5.2f} | Weight: {weight:5.2f}, {used_capacity:5.2%} of capacity"
     )
     return plot
 
 
-def plot_items(items_data: pd.DataFrame, label: bool = True) -> ggplot:
+def plot_items(items_data: pd.DataFrame, capacity:float, label: bool = True) -> ggplot:
     plot = ggplot(items_data, aes("weight", "value")) + geom_point(size=5, color="black")
     if label:
         plot = _add_labels(plot, items_data)
 
-    plot += ggtitle(f"Knapsack problem with {len(items_data)} items.")
+    plot += ggtitle(f"Knapsack problem with {len(items_data)} items and capacity {capacity:5.2f}.")
     return plot
