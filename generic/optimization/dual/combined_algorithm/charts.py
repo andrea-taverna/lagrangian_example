@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import mizani.formatters
 from plotnine import *
@@ -50,13 +51,10 @@ def gap(kpis: pd.DataFrame) -> ggplot:
 
 
 def infeasibility(kpis: pd.DataFrame) -> ggplot:
-    kpis = kpis.copy()
-    kpis["v_infeasibilities"] = kpis["relaxation_primal"].transform(
-        lambda h: series_dict_to_array(**h.infeasibilities)
+    kpis = kpis[["iteration", "relaxation_primal"]].copy()
+    kpis["infeasibility"] = kpis["relaxation_primal"].apply(
+        lambda h: sum(map(np.sum, h.infeasibilities.values()))
     )
 
-    infeasibility = kpis[["iteration", "v_infeasibilities"]]
-    infeasibility["infeasibility"] = infeasibility["v_infeasibilities"].map(lambda v: v.sum())
-
-    return ggplot(infeasibility, aes("iteration", "infeasibility")) + geom_step(size=1.5) \
+    return ggplot(kpis, aes("iteration", "infeasibility")) + geom_step(size=1.5) \
         + labs(x="Iteration #", y="Total infeasibility [MWh]") + ggtitle("Infeasibility by iteration")

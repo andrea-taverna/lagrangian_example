@@ -15,8 +15,8 @@ class UCPData:
         self,
         thermal_plants: pd.DataFrame,
         loads: pd.DataFrame,
-        EIE_cost_factor: float = 5.0,
-        ENP_cost_factor: float = 5.0,
+        EIE_cost_factor: float = 3.0,
+        ENP_cost_factor: float = 3.0,
     ):
         self.thermal_plants = thermal_plants
         self.loads = loads

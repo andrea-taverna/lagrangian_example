@@ -2,8 +2,10 @@ import pandas as pd
 from mizani.formatters import percent_format, percent
 from plotnine import *
 
-
-from generic.optimization.model import Solution
+from UCP.data import UCPData
+from UCP.model import create_model
+from generic.optimization.model import Solution, MathematicalProgram
+from generic.optimization.solution_extraction import compute_multipliers
 
 
 def total_production(data, solution: Solution) -> ggplot:
@@ -25,7 +27,7 @@ def total_production(data, solution: Solution) -> ggplot:
 
 def enp_vs_eie(data, solution: Solution) -> ggplot:
     demand_gap = pd.merge(solution["EIE"], solution["ENP"], on="period")
-    demand = data.loads[["period","value"]].set_index("period")["value"]
+    demand = data.loads[["period", "value"]].set_index("period")["value"]
     demand_gap["ENP"] /= demand
     demand_gap["EIE"] /= demand
     demand_gap = pd.melt(demand_gap.reset_index(), id_vars="period", var_name="Series")
@@ -68,7 +70,7 @@ def production_by_plant(data, solution: Solution) -> ggplot:
     )
 
 
-def plant_utilization(data, solution: Solution) -> ggplot:
+def plant_utilization(data: UCPData, solution: Solution) -> ggplot:
     TPP = data.thermal_plants
     avg_coef = TPP.l_cost + (TPP.c_cost / TPP.max_power)
     avg_coef.name = "avg_coef"
@@ -85,6 +87,19 @@ def plant_utilization(data, solution: Solution) -> ggplot:
         ggplot(temp, aes("avg_coef", "utilization", label="plant"))
         + geom_label()
         + scale_y_continuous(labels=percent_format())
-        + labs(x="Avg. Hourly cost [€/MWh]", y="Utilization % (total production/total max production)", label="Plant id")
+        + labs(
+            x="Avg. Hourly cost [€/MWh]", y="Utilization % (total production/total max production)", label="Plant id"
+        )
         + ggtitle("Utilization vs Hourly cost")
     )
+
+
+def electricity_prices(
+    data: UCPData, solution: Solution, model: MathematicalProgram = None, **solver_options
+) -> ggplot:
+    model = model if model is not None else create_model(data)
+    energy_prices = (
+        compute_multipliers(model, solution, **solver_options)["demand_satisfaction"].to_frame().reset_index()
+    )
+    energy_prices.columns = ["period", "electricity_price"]
+    return ggplot(energy_prices, aes("period", "electricity_price")) + geom_step(size=1)
