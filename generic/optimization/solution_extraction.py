@@ -1,7 +1,7 @@
 import collections
 from typing import Dict, List, Union, OrderedDict, Any
 import pandas as pd
-from pulp import LpVariable, LpAffineExpression, LpConstraint, LpContinuous, COIN_CMD
+from pulp import LpVariable, LpAffineExpression, LpConstraint, LpContinuous, PULP_CBC_CMD
 
 from generic.optimization.fix_variables import fix_variables, unfix_variables
 from generic.optimization.model import MathematicalProgram, Solution
@@ -55,7 +55,7 @@ def compute_multipliers(model: MathematicalProgram, solution: Solution, **kwargs
 
     # solve the model as an LP and extract the multipliers
     kwargs["mip"] = 0
-    model.solve(COIN_CMD(**kwargs))
+    model.solve(PULP_CBC_CMD(msg=0,**kwargs))
     multipliers = extract_multipliers(model)
 
     # if some variables were fixed, restore their bounds

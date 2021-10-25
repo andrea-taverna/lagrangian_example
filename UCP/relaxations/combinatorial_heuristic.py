@@ -2,7 +2,7 @@ import operator
 from itertools import groupby
 from typing import List, Dict, Any
 import pandas as pd
-from pulp import COIN_CMD, LpVariable, LpStatusOptimal
+from pulp import PULP_CBC_CMD, LpVariable, LpStatusOptimal
 
 from UCP.data import UCPData
 import UCP.model as ucp_model
@@ -41,7 +41,7 @@ def combinatorial_heuristic(
 
     # create the combination model
     model = heuristic_model.create_model(data, commitments)
-    model.solve(COIN_CMD(**combination_options))
+    model.solve(PULP_CBC_CMD(msg=0,**combination_options))
 
     # extract the
     commit_values = [(plant, com, v.value()) for (plant, com), v in model.vars["commit"].items()]
@@ -62,7 +62,7 @@ def combinatorial_heuristic(
     selected_commitments = {plant: commitments[pat[1]] for plant, pat in selected_pats.items()}
     final_model = ucp_model.create_model(data)
     _fix_commitments(data, final_model, selected_commitments)
-    status = final_model.solve(COIN_CMD(**final_model_options))
+    status = final_model.solve(PULP_CBC_CMD(msg=0,**final_model_options))
     assert status == LpStatusOptimal, "Final model in combinatorial heuristic not solved optimally."
     return extract_solution(final_model)
 
