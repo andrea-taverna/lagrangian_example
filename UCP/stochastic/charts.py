@@ -9,7 +9,7 @@ from plotnine import *
 
 from UCP.data import UCPData
 from UCP.stochastic import scen_gen
-from UCP.stochastic.scen_gen import ScenarioInfo
+from UCP.stochastic.scen_gen import ScenarioInfo, to_pandas
 from generic.optimization.model import Solution
 
 alpha_values = [0.1, 0.2, 0.5]
@@ -26,10 +26,10 @@ def compute_intervals(
 ):
 
     temp = data[groupby_cols + [target]].groupby(groupby_cols)
-    data_columns = [temp.apply(lambda x: percentile(x[target], p)).reset_index() for p in percentiles.keys()]
+    data_columns = [temp.apply(lambda x: percentile(x[target], p)) for p, k in percentiles.items()]
 
-    data_columns.append(temp[target].mean().reset_index())
-    intervals = reduce(lambda x, y: pd.merge(x, y, on=groupby_cols), data_columns)
+    data_columns.append(temp[target].mean())
+    intervals = pd.concat(data_columns, axis=1).reset_index()
     intervals.columns = groupby_cols + list(percentiles.values()) + [mean_label]
 
     return intervals
@@ -60,6 +60,21 @@ def confidence_intervals(data=None, fill="grey", inherit_aes=True, name: str = "
         ),
         scale_alpha_continuous(range=(0.1, 0.5), name=name, breaks=alpha_breaks, na_value=-1, labels=alpha_labels),
     ]
+
+
+def load(scenarios:List[ScenarioInfo]) -> ggplot:
+    loads_scen, _ = to_pandas(*scenarios)
+    loads_scen_df = pd.DataFrame(loads_scen, columns=["value"]).reset_index()
+
+    intervals = compute_intervals(loads_scen_df, "value", ["period"])
+
+    return (
+        ggplot(loads_scen_df, aes("period", "value", color="factor(scenario)"))
+        + geom_line(show_legend=False)
+        + confidence_intervals(intervals, inherit_aes=False)
+        + labs(y="Load [MWh]", color="Scenario")
+        + ggtitle("Load scenarios")
+    )
 
 
 def total_production(data, solution: Solution) -> ggplot:
@@ -168,9 +183,7 @@ def plant_utilization(data, solution: Solution) -> ggplot:
         )
         + geom_label(aes(label="plant"))
         + scale_y_continuous(labels=percent_format())
-        + scale_color_discrete(
-            breaks=["out", "in"], labels=["100%", "50%"], name="Confidence interval")
-        + labs(
-            x="Avg. Hourly cost [€/MWh]", y="Utilization % (total production/total max production)")
+        + scale_color_discrete(breaks=["out", "in"], labels=["100%", "50%"], name="Confidence interval")
+        + labs(x="Avg. Hourly cost [€/MWh]", y="Utilization % (total production/total max production)")
         + ggtitle("Utilization vs Hourly cost")
     )
