@@ -50,7 +50,7 @@ def compute_multipliers(model: MathematicalProgram, solution: Solution, **kwargs
     fixed = False
     previous_bounds = {}
     if sum(map(len, int_vars.values())) > 0:
-        previous_bounds = fix_variables(int_vars, model, solution)
+        previous_bounds = fix_variables(int_vars, solution)
         fixed = True
 
     # solve the model as an LP and extract the multipliers

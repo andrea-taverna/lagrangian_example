@@ -6,7 +6,7 @@ from generic.optimization.model import MathematicalProgram, Solution
 
 
 def fix_variables(
-    variables: Dict[str, Dict[Any, LpVariable]], model: MathematicalProgram, solution: Solution
+    variables: Dict[str, Dict[Any, LpVariable]], solution: Solution
 ) -> Dict[str, Dict[Any, Tuple[float, float]]]:
     """
     Fixes variables in `variables` to the values found in `solution` for model `model`.
