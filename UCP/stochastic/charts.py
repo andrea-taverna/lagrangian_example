@@ -1,15 +1,14 @@
-from functools import reduce
 from typing import List
 
 import pandas as pd
 from mizani.formatters import percent_format, percent
 from numpy import percentile
-from scipy.stats import truncnorm
 from plotnine import *
 
 from UCP.data import UCPData
 from UCP.stochastic import scen_gen
 from UCP.stochastic.scen_gen import ScenarioInfo, to_pandas
+from UCP.stochastic.solution_evalution import StochasticEvaluation
 from generic.optimization.model import Solution
 
 alpha_values = [0.1, 0.2, 0.5]
@@ -62,7 +61,7 @@ def confidence_intervals(data=None, fill="grey", inherit_aes=True, name: str = "
     ]
 
 
-def load(scenarios:List[ScenarioInfo]) -> ggplot:
+def load(scenarios: List[ScenarioInfo]) -> ggplot:
     loads_scen, _ = to_pandas(*scenarios)
     loads_scen_df = pd.DataFrame(loads_scen, columns=["value"]).reset_index()
 
@@ -107,7 +106,7 @@ def enp_vs_eie(data: UCPData, scenarios: List[ScenarioInfo], solution: Solution)
 
     return (
         ggplot(demand_gap, aes(x="period", y="mean"))
-        + geom_line()
+        + geom_line(size=1)
         + confidence_intervals()
         + scale_y_continuous(labels=percent)
         + labs(x="period", y="Exp. mismatch %")
@@ -186,4 +185,32 @@ def plant_utilization(data, solution: Solution) -> ggplot:
         + scale_color_discrete(breaks=["out", "in"], labels=["100%", "50%"], name="Confidence interval")
         + labs(x="Avg. Hourly cost [€/MWh]", y="Utilization % (total production/total max production)")
         + ggtitle("Utilization vs Hourly cost")
+    )
+
+
+def compare_deterministic_stochastic(
+    deterministic_value: float, deterministic_eval: StochasticEvaluation, stochastic_eval: StochasticEvaluation
+) -> ggplot:
+    evaluation = pd.DataFrame.from_dict(
+        {"Deterministic": deterministic_eval.cost_by_scenario, "Stochastic": stochastic_eval.cost_by_scenario}
+    )
+    evaluation["scenario"] = evaluation.index
+    data = pd.melt(evaluation, id_vars="scenario")
+
+    lines = pd.DataFrame(
+        [
+            ("Deterministic", deterministic_value),
+            ("Evaluated Deterministic ", deterministic_eval.expected_cost),
+            ("Evaluated Stochastic", stochastic_eval.expected_cost),
+        ],
+        columns=["name", "position"],
+    )
+
+    return (
+        ggplot(data, aes("value", fill="variable"))
+        + geom_density(alpha=0.4, color="lightgrey")
+        + geom_vline(lines, aes(xintercept="position", color="name"), size=2, linetype="-.")
+        + ggtitle("Cost comparison between deterministic and stochastic solution")
+        + scale_color_manual(breaks=lines["name"], values=["black", "red", "cyan"] )
+        + labs(x="Cost", fill="Cost distribution for solution type", color="Cost value")
     )

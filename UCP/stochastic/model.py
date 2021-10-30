@@ -106,7 +106,7 @@ def create_model(data: UCPData, scenarios: List[ScenarioInfo]) -> MathematicalPr
     }
 
     demand_satisfaction = {
-        t: add_constraint(
+        (t,scen): add_constraint(
             model,
             lpSum(p[plant, t, scen] for plant in Plants) + ENP[t, scen] - EIE[t, scen] == scenarios[scen].loads[t],
             f"demand_satisfaction_{t}_{scen}",
