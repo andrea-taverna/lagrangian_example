@@ -7,9 +7,11 @@ from plotnine import *
 
 from UCP.data import UCPData
 from UCP.stochastic import scen_gen
+from UCP.stochastic.model import create_model
 from UCP.stochastic.scen_gen import ScenarioInfo, to_pandas
 from UCP.stochastic.solution_evalution import StochasticEvaluation
-from generic.optimization.model import Solution
+from generic.optimization.model import Solution, MathematicalProgram
+from generic.optimization.solution_extraction import compute_multipliers
 
 alpha_values = [0.1, 0.2, 0.5]
 alpha_breaks = [0.1, 0.2, 0.5]
@@ -112,6 +114,23 @@ def enp_vs_eie(data: UCPData, scenarios: List[ScenarioInfo], solution: Solution)
         + labs(x="period", y="Exp. mismatch %")
         + ggtitle("Demand mismatch")
     )
+
+
+def electricity_prices(
+        data: UCPData, scenarios: List[ScenarioInfo], solution: Solution, model: MathematicalProgram = None, **solver_options
+) -> ggplot:
+    model = model if model is not None else create_model(data, scenarios)
+
+    electricity_prices = (
+        compute_multipliers(model, solution, **solver_options)["demand_satisfaction"].to_frame().reset_index()
+    )
+    scenarios_prob = pd.DataFrame([(i, s.probability) for i,s in enumerate(scenarios)], columns=["scenario", "probability"])
+    electricity_prices.columns = ["period", "scenario", "electricity_price"]
+    electricity_prices = pd.merge(electricity_prices, scenarios_prob, on="scenario")
+    electricity_prices["electricity_price"]/=electricity_prices["probability"]
+    electricity_prices_data = compute_intervals(electricity_prices, "electricity_price", ["period"])
+
+    return ggplot(electricity_prices_data, aes("period", "mean")) + geom_line(size=1) + confidence_intervals()
 
 
 def production_by_plant(data, solution: Solution) -> ggplot:
