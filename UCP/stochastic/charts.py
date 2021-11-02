@@ -117,20 +117,35 @@ def enp_vs_eie(data: UCPData, scenarios: List[ScenarioInfo], solution: Solution)
 
 
 def electricity_prices(
-        data: UCPData, scenarios: List[ScenarioInfo], solution: Solution, model: MathematicalProgram = None, **solver_options
+    data: UCPData,
+    scenarios: List[ScenarioInfo],
+    solution: Solution,
+    model: MathematicalProgram = None,
+    **solver_options,
 ) -> ggplot:
     model = model if model is not None else create_model(data, scenarios)
 
     electricity_prices = (
         compute_multipliers(model, solution, **solver_options)["demand_satisfaction"].to_frame().reset_index()
     )
-    scenarios_prob = pd.DataFrame([(i, s.probability) for i,s in enumerate(scenarios)], columns=["scenario", "probability"])
     electricity_prices.columns = ["period", "scenario", "electricity_price"]
+
+    scenarios_prob = pd.DataFrame(
+        [(i, s.probability) for i, s in enumerate(scenarios)], columns=["scenario", "probability"]
+    )
+
     electricity_prices = pd.merge(electricity_prices, scenarios_prob, on="scenario")
-    electricity_prices["electricity_price"]/=electricity_prices["probability"]
+
+    electricity_prices["electricity_price"] /= electricity_prices["probability"]
     electricity_prices_data = compute_intervals(electricity_prices, "electricity_price", ["period"])
 
-    return ggplot(electricity_prices_data, aes("period", "mean")) + geom_line(size=1) + confidence_intervals()
+    return (
+        ggplot(electricity_prices_data, aes("period", "mean"))
+        + geom_line(size=2, color="darkorange")
+        + confidence_intervals(inherit_aes=False)
+        + ggtitle("Hourly Electricity Prices")
+        + labs(x="period", y="hourly Electricity price [€/MWh]")
+    )
 
 
 def production_by_plant(data, solution: Solution) -> ggplot:
@@ -230,6 +245,6 @@ def compare_deterministic_stochastic(
         + geom_density(alpha=0.4, color="lightgrey")
         + geom_vline(lines, aes(xintercept="position", color="name"), size=2, linetype="-.")
         + ggtitle("Cost comparison between deterministic and stochastic solution")
-        + scale_color_manual(breaks=lines["name"], values=["black", "red", "cyan"] )
+        + scale_color_manual(breaks=lines["name"], values=["black", "red", "cyan"])
         + labs(x="Cost", fill="Cost distribution for solution type", color="Cost value")
     )

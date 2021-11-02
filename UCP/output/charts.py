@@ -102,4 +102,9 @@ def electricity_prices(
         compute_multipliers(model, solution, **solver_options)["demand_satisfaction"].to_frame().reset_index()
     )
     energy_prices.columns = ["period", "electricity_price"]
-    return ggplot(energy_prices, aes("period", "electricity_price")) + geom_step(size=1)
+    return (
+        ggplot(energy_prices, aes("period", "electricity_price"))
+        + geom_step(size=2, color="darkorange")
+        + ggtitle("Hourly Electricity Prices")
+        + labs(x="period", y="hourly Electricity price [€/MWh]")
+    )
