@@ -233,9 +233,9 @@ def compare_deterministic_stochastic(
 
     lines = pd.DataFrame(
         [
-            ("Deterministic", deterministic_value),
-            ("Evaluated Deterministic ", deterministic_eval.expected_cost),
-            ("Evaluated Stochastic", stochastic_eval.expected_cost),
+            ("cost reported by Deterministic model ", deterministic_value),
+            ("Expected cost for Deterministic solution", deterministic_eval.expected_cost),
+            ("Expected cost for Stochastic solution", stochastic_eval.expected_cost),
         ],
         columns=["name", "position"],
     )
@@ -246,5 +246,5 @@ def compare_deterministic_stochastic(
         + geom_vline(lines, aes(xintercept="position", color="name"), size=2, linetype="-.")
         + ggtitle("Cost comparison between deterministic and stochastic solution")
         + scale_color_manual(breaks=lines["name"], values=["black", "red", "cyan"])
-        + labs(x="Cost", fill="Cost distribution for solution type", color="Cost value")
+        + labs(x="Cost", fill="Cost distribution for solution type", color="Solution value")
     )
