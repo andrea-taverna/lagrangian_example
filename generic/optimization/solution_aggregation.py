@@ -5,6 +5,8 @@ import pandas as pd
 from generic.optimization.model import MathematicalProgram, Solution
 from generic.optimization.solution_extraction import extract_solution
 
+T = TypeVar("T")
+
 
 def extract_and_aggregate_solutions(subproblems: Dict[Any, MathematicalProgram], id_name: List[str]) -> Solution:
     """
@@ -28,9 +30,6 @@ def extract_and_aggregate_solutions(subproblems: Dict[Any, MathematicalProgram],
 
     # merge the values across subproblems for each fields
     return {k: _aggregate(data, id_name) for k, data in full_solution_dict.items()}
-
-
-T = TypeVar("T")
 
 
 def _aggregate(data: Dict[Any, Union[float, pd.Series]], id_name: List[str]) -> pd.Series:

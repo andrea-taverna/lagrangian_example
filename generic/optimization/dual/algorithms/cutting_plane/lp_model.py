@@ -6,14 +6,30 @@ from generic.optimization.model import OptimizationSense
 
 
 class CPLPModel:
+    """
+    Cutting Plane model as a Linear Program (CPLP)
+
+    Attributes:
+        model: LP model
+        optimistic_bound: expected value of the actual function according to current cuts
+        variables: model variables
+        sense: either LpMinimize or LpMaximize
+    """
 
     model: LpProblem
     optimistic_bound: LpVariable
     variables = List[LpVariable]
     sense: LpSenses
-    cuts: List[LpConstraint]
 
     def __init__(self, sense: OptimizationSense, var_lb: np.ndarray, var_ub: np.ndarray):
+        """
+        Creates a CPLP with empty cut set
+        Args:
+            sense: optimization sense
+            var_lb: variables lower bound
+            var_ub: variables upper bound
+
+        """
         num_vars = len(var_lb)
         self.sense = sense
         self.model = LpProblem("CuttingPlane")
@@ -27,6 +43,13 @@ class CPLPModel:
         self.model.sense = LpMaximize if self.sense == OptimizationSense.MAX else LpMinimize
 
     def add_cut(self, intercept: float, subgradient: np.ndarray):
+        """
+        Adds a cut to the LP model
+        Args:
+            intercept: constant term of the cut
+            subgradient: subgradient/coefficients of the cut
+
+        """
         sign = int(self.sense.value)
         cons_expr = sign * self.optimistic_bound <= sign * (
             +lpSum(subgradient[j] * self.variables[j] for j in range(len(self.variables))) + intercept
@@ -34,6 +57,17 @@ class CPLPModel:
         self.model.addConstraint(cons_expr)
 
     def actual_solve(self, **kwargs) -> Tuple[int, float, np.ndarray]:
+        """
+        Calls the  solver on the LP model
+        Args:
+            **kwargs: additional arguments to the solver
+
+        Returns:
+            Tuple with:
+                * status: solver's status
+                * optimistic bound: expected value of the true function
+                * variables' values: variables' values
+        """
         status = self.model.solve(PULP_CBC_CMD(msg=0, **kwargs))
         var_values = np.array([self.variables[i].value() for i in range(len(self.variables))])
         return status, self.optimistic_bound.value(), var_values
@@ -43,8 +77,3 @@ class CPLPModel:
         assert status == LpStatusOptimal
         return optimistic_bound, variables
 
-    def set_stabilization(self, **kwargs):
-        pass
-
-    def reset_stabilization(self):
-        pass
