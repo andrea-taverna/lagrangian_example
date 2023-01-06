@@ -6,7 +6,7 @@ import pandas as pd
 from pulp import PULP_CBC_CMD, lpSum, LpStatusOptimal
 
 from UCP.model import UCPData
-from UCP.relaxations.lagrangian.production_state.subproblems import (
+from UCP.lagrangian_relaxation.subproblems import (
     make_single_UCP,
     make_economic_dispatch,
 )

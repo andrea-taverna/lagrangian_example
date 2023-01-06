@@ -1,7 +1,5 @@
-mizani==0.7.3
-numpy==1.22.2
-pandas==1.4.0
-plotnine==0.8.0
-PuLP==2.6.0
-jupyter==1.0.0
-wurlitzer==3.0.2
+mizani
+numpy
+pandas
+plotnine
+PuLP

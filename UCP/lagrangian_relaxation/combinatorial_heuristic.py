@@ -7,7 +7,7 @@ from pulp import PULP_CBC_CMD, LpVariable, LpStatusOptimal
 from UCP.data import UCPData
 import UCP.model as ucp_model
 from generic.optimization.model import MathematicalProgram, Solution
-from UCP.relaxations import heuristic_model
+from UCP.lagrangian_relaxation import heuristic_model
 from generic.optimization.solution_extraction import extract_solution
 
 

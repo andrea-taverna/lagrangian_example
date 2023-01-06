@@ -88,7 +88,7 @@ def plant_utilization(data: UCPData, solution: Solution) -> ggplot:
         + geom_label()
         + scale_y_continuous(labels=percent_format())
         + labs(
-            x="Avg. Hourly cost [€/MWh]", y="Utilization % (total production/total max production)", label="Plant id"
+            x="Avg. Hourly cost [€/MWh]", y="Utilization % (total production/total max production)"
         )
         + ggtitle("Utilization vs Hourly cost")
     )

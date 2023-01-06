@@ -84,17 +84,14 @@ class SubgradientMethod:
 
     def _project_direction(self, direction: np.ndarray, current_solution: np.ndarray) -> np.ndarray:
         # find direction components that need clipping
-        clip_lower = np.where((current_solution < self.var_lb + self.feasibility_tolerance) & (direction < 0))
-        clip_upper = np.where((current_solution > self.var_ub - self.feasibility_tolerance) & (direction > 0))
+        clip_lower = np.where((current_solution -  self.feasibility_tolerance < self.var_lb) & (direction < 0))
+        clip_upper = np.where((current_solution + self.feasibility_tolerance > self.var_ub) & (direction > 0))
 
-        # for the non-clipped components set dummy boundaries, the clipped ones are set to zero instead
-        a_min = direction.copy() - 1e-4
-        a_min[clip_lower] = 0
+        direction = direction.copy()
+        direction[clip_lower] = 0
+        direction[clip_upper] = 0
 
-        a_max = direction.copy() + 1e-4
-        a_max[clip_upper] = 0
-
-        return np.clip(direction, a_min, a_max)
+        return direction
 
     def _step_size_rule(
         self, current_value: float, current_solution: np.ndarray, direction: np.ndarray, combination_coefficient: float
