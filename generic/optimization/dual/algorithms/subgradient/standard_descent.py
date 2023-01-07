@@ -85,7 +85,7 @@ class SubgradientMethod:
     def _project_direction(self, direction: np.ndarray, current_solution: np.ndarray):
         # find direction components that need clipping
         # don't move along the direction if the slack between the current solution and the bound is smaller
-        # than the tolerance, as no reasonable
+        # than the tolerance, as no reasonable step can be performed
         clip_lower = np.where((current_solution - self.var_lb < self.feasibility_tolerance) & (direction < 0))
         clip_upper = np.where((self.var_ub - current_solution < self.feasibility_tolerance) & (direction > 0))
 
