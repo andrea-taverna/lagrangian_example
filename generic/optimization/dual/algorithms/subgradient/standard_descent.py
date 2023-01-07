@@ -60,7 +60,7 @@ class SubgradientMethod:
             direction, combination_coef = self._deflection_rule(subgradient, self._previous_direction)
 
         # project direction
-        direction = self._project_direction(direction, self.current_solution)
+        self._project_direction(direction, self.current_solution)
 
         # direction computation finished. update `_previous_direction` accordingly
         self._previous_direction = direction
@@ -82,16 +82,15 @@ class SubgradientMethod:
 
         return self.current_solution
 
-    def _project_direction(self, direction: np.ndarray, current_solution: np.ndarray) -> np.ndarray:
+    def _project_direction(self, direction: np.ndarray, current_solution: np.ndarray):
         # find direction components that need clipping
-        clip_lower = np.where((current_solution -  self.feasibility_tolerance < self.var_lb) & (direction < 0))
-        clip_upper = np.where((current_solution + self.feasibility_tolerance > self.var_ub) & (direction > 0))
+        # don't move along the direction if the slack between the current solution and the bound is smaller
+        # than the tolerance, as no reasonable
+        clip_lower = np.where((current_solution - self.var_lb < self.feasibility_tolerance) & (direction < 0))
+        clip_upper = np.where((self.var_ub - current_solution < self.feasibility_tolerance) & (direction > 0))
 
-        direction = direction.copy()
         direction[clip_lower] = 0
         direction[clip_upper] = 0
-
-        return direction
 
     def _step_size_rule(
         self, current_value: float, current_solution: np.ndarray, direction: np.ndarray, combination_coefficient: float
