@@ -7,7 +7,7 @@ Sample code to showcase:
 
 applied to "power plant scheduling problem" a.k.a. the Unit Commitment Problem (UCP).
 
-The code has been used to produce content for some of my talks. See pdf `ATaverna_DLI_2022.pdf` for the 
+The code has been used to produce content for some of my talks. See slides deck [ATaverna_DLI_2022.pdf](https://github.com/andrea-taverna/lagrangian_example/blob/master/ATaverna_DLI_2022.pdf) for the 
 [talk](https://talks.codemotion.com/operations-research-the-scalable-ai-for-?view=true) at
 DeepLearning Italia / Codemotion Italy in 2022 (audio in Italian).
 
